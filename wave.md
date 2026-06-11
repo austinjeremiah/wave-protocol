@@ -16,16 +16,15 @@
 8. [API Design](#8-api-design)
 9. [Authentication & Authorization](#9-authentication--authorization)
 10. [Infrastructure & Deployment](#10-infrastructure--deployment)
-11. [DevOps & CI/CD](#11-devops--cicd)
-12. [Monitoring, Logging & Observability](#12-monitoring-logging--observability)
-13. [Security Considerations](#13-security-considerations)
-14. [Folder Structure](#14-folder-structure)
-15. [Naming Conventions](#15-naming-conventions)
-16. [Required Libraries & Dependencies](#16-required-libraries--dependencies)
-17. [Development Workflow](#17-development-workflow)
-18. [Testing Strategy](#18-testing-strategy)
-19. [Phase-by-Phase Implementation Plan](#19-phase-by-phase-implementation-plan)
-20. [Environment Variables Reference](#20-environment-variables-reference)
+11. [Monitoring, Logging & Observability](#11-monitoring-logging--observability)
+12. [Security Considerations](#12-security-considerations)
+13. [Folder Structure](#13-folder-structure)
+14. [Naming Conventions](#14-naming-conventions)
+15. [Required Libraries & Dependencies](#15-required-libraries--dependencies)
+16. [Development Workflow](#16-development-workflow)
+17. [Testing Strategy](#17-testing-strategy)
+18. [Phase-by-Phase Implementation Plan](#18-phase-by-phase-implementation-plan)
+19. [Environment Variables Reference](#19-environment-variables-reference)
 
 ---
 
@@ -100,7 +99,7 @@ WaveAgent is a multi-agent coordination system built on ERC-7710 delegation chai
                    │  EIP-7710 relayed transactions (USDC gas)
                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     BASE MAINNET / BASE SEPOLIA                     │
+│                           BASE SEPOLIA                              │
 │                                                                     │
 │  ┌────────────────────────────────────────────────────────────┐    │
 │  │  DelegationManager (MetaMask, 0xdb9B1e94...47dB3)          │    │
@@ -190,7 +189,7 @@ WaveAgent is a multi-agent coordination system built on ERC-7710 delegation chai
 | PlanetScale / Neon | Serverless PostgreSQL |
 | Upstash Redis | Serverless Redis |
 | Base Sepolia | Testnet |
-| Base Mainnet | Production |
+| Base Sepolia | Demo / Deployment |
 
 ---
 
@@ -428,11 +427,9 @@ runs = 1000
 
 [rpc_endpoints]
 base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
-base        = "${BASE_RPC_URL}"
 
 [etherscan]
 base_sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
-base         = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }
 ```
 
 **Install dependencies:**
@@ -468,6 +465,7 @@ forge script script/Deploy.s.sol \
   --rpc-url base_sepolia \
   --broadcast \
   --verify \
+  --private-key $DEPLOYER_PRIVATE_KEY \
   -vvvv
 ```
 
@@ -534,7 +532,7 @@ import {
   toMetaMaskSmartAccount,
   Implementation,
 } from '@metamask/smart-accounts-kit'
-import { base } from 'viem/chains'
+import { baseSepolia } from 'viem/chains'
 import type { Address, Hex } from 'viem'
 
 export type AgentId = 0 | 1 | 2
@@ -556,7 +554,7 @@ let _agents: AgentWallet[] | null = null
 export async function getAgentWallets(): Promise<AgentWallet[]> {
   if (_agents) return _agents
 
-  const chain = base // or baseSepolia for dev
+  const chain = baseSepolia
 
   _agents = await Promise.all(
     AGENT_KEYS.map(async (key) => {
@@ -601,7 +599,7 @@ export interface SubDelegationSet {
   agentDelegations: SignedDelegation[]   // index 0=Research, 1=Analysis, 2=Execution
 }
 
-const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as Address // Base mainnet USDC
+const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address // Base Sepolia USDC
 const ENFORCER_ADDRESS = process.env.VENICE_COLLAPSE_ENFORCER_ADDRESS as Address
 
 /**
@@ -781,11 +779,10 @@ import {
   DelegationManager,
   getSmartAccountsEnvironment,
 } from '@metamask/smart-accounts-kit'
-import { base }                 from 'viem/chains'
 import type { Address, Hex }    from 'viem'
 
 const RELAYER_ENDPOINT = 'https://relayer.1shotapi.com/relayers'
-const CHAIN_ID = 8453 // Base mainnet; use 84532 for Base Sepolia
+const CHAIN_ID = 84532 // Base Sepolia
 
 interface RelayerCapabilities {
   targetAddress: Address
@@ -1311,7 +1308,7 @@ export function usePermissionGrant() {
     const client = walletClient.extend(erc7715ProviderActions())
 
     const [permissionResponse] = await client.grantPermissions([{
-      chainId: 8453,    // Base mainnet
+      chainId: 84532,   // Base Sepolia
       expiry:  Math.floor(Date.now() / 1000) + 3600,  // 1 hour
       signer: {
         type:    'account',
@@ -1321,7 +1318,7 @@ export function usePermissionGrant() {
         type:            'erc20-token-periodic',
         isAdjustmentAllowed: false,
         data: {
-          token:          '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',  // USDC Base
+          token:          '0x036CbD53842c5426634e7929541eC2318f3dCF7e',  // USDC Base Sepolia
           periodInSeconds: 3600,
           initialAmount:   BigInt(Math.floor(params.budgetUsdc * 1e6)),
         },
@@ -1545,15 +1542,14 @@ components/
 'use client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider, createConfig, http } from 'wagmi'
-import { base, baseSepolia }                  from 'wagmi/chains'
+import { baseSepolia }                        from 'wagmi/chains'
 import { metaMask }                           from 'wagmi/connectors'
 import { useState }                           from 'react'
 
 const wagmiConfig = createConfig({
-  chains:     [base, baseSepolia],
+  chains:     [baseSepolia],
   connectors: [metaMask()],
   transports: {
-    [base.id]:        http(),
     [baseSepolia.id]: http(),
   },
 })
@@ -1829,11 +1825,7 @@ The `VeniceCollapseEnforcer` stores `initiator` per session — only the backend
 
 ### 10.1 Environments
 
-| Environment | Chain | Purpose |
-|---|---|---|
-| `development` | Base Sepolia (84532) | Local + CI testing |
-| `staging` | Base Sepolia | Pre-production integration |
-| `production` | Base Mainnet (8453) | Hackathon demo |
+One environment: **Base Sepolia (84532)**. Deploy to Vercel directly.
 
 ### 10.2 Vercel Configuration
 
@@ -1867,111 +1859,11 @@ export const dynamic = 'force-dynamic'
 
 ### 10.3 Environment Variables
 
-See Section 20 for the full reference. Create `.env.local` for development and configure these in Vercel for production.
+See Section 19 for the full reference. Create `.env.local` for development and configure these in Vercel for production.
 
 ---
 
-## 11. DevOps & CI/CD
-
-### 11.1 GitHub Actions
-
-**`.github/workflows/ci.yml`**
-
-```yaml
-name: CI
-
-on:
-  push:
-    branches: [main, dev]
-  pull_request:
-    branches: [main]
-
-jobs:
-  lint-and-type-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm type-check
-
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: waveagent_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports: ['5432:5432']
-      redis:
-        image: redis:7
-        ports: ['6379:6379']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm db:push
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/waveagent_test
-      - run: pnpm test
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/waveagent_test
-          REDIS_URL:    redis://localhost:6379
-
-  contracts:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
-      - uses: foundry-rs/foundry-toolchain@v1
-      - run: forge test --gas-report
-        working-directory: ./contracts
-
-  deploy-preview:
-    needs: [lint-and-type-check, test]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: amondnet/vercel-action@v25
-        with:
-          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-
-  deploy-production:
-    needs: [lint-and-type-check, test]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: amondnet/vercel-action@v25
-        with:
-          vercel-token:   ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id:  ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args:    '--prod'
-```
-
-### 11.2 Branch Strategy
-
-- `main` → Production deploys
-- `dev` → Staging deploys, base for PRs
-- `feat/phase-X-*` → Feature branches per phase
-- Squash-merge all PRs
-
----
-
-## 12. Monitoring, Logging & Observability
+## 11. Monitoring, Logging & Observability
 
 ### 12.1 Structured Logging
 
@@ -2019,7 +1911,7 @@ Set up Vercel alerts for:
 
 ---
 
-## 13. Security Considerations
+## 12. Security Considerations
 
 ### 13.1 Private Key Management
 
@@ -2086,7 +1978,7 @@ async function assertAgentBalances(agents: AgentWallet[]): Promise<void> {
 
 ---
 
-## 14. Folder Structure
+## 13. Folder Structure
 
 ```
 waveagent/
@@ -2185,7 +2077,7 @@ waveagent/
 
 ---
 
-## 15. Naming Conventions
+## 14. Naming Conventions
 
 ### TypeScript
 
@@ -2220,7 +2112,7 @@ waveagent/
 
 ---
 
-## 16. Required Libraries & Dependencies
+## 15. Required Libraries & Dependencies
 
 ### `package.json` (root)
 
@@ -2296,9 +2188,9 @@ forge install foundry-rs/forge-std --no-commit
 
 ---
 
-## 17. Development Workflow
+## 16. Development Workflow
 
-### 17.1 Initial Setup
+### 16.1 Initial Setup
 
 ```bash
 # Clone repo
@@ -2329,7 +2221,7 @@ pnpm db:push
 pnpm dev
 ```
 
-### 17.2 Local Blockchain Setup (Optional — for contract dev)
+### 16.2 Local Blockchain Setup (Optional — for contract dev)
 
 ```bash
 # Terminal 1: Run anvil (local EVM)
@@ -2345,7 +2237,7 @@ forge script script/Deploy.s.sol \
 # Note deployed address, set VENICE_COLLAPSE_ENFORCER_ADDRESS in .env.local
 ```
 
-### 17.3 Daily Dev Flow
+### 16.3 Daily Dev Flow
 
 ```bash
 # Feature branch
@@ -2361,31 +2253,27 @@ cd contracts && forge test -vvv --watch
 git push origin feat/phase-2-delegation-chain
 ```
 
-### 17.4 Testing with Testnet
-
-For integration testing on Base Sepolia:
+### 16.4 Deploy Contract
 
 ```bash
-# Fund agent wallets with testnet USDC
-# Get testnet USDC from Base Sepolia faucet or Coinbase
+# Fund agent wallets with testnet USDC (Base Sepolia faucet or Coinbase)
 
-# Deploy enforcer to Base Sepolia
 cd contracts
 forge script script/Deploy.s.sol \
-  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --rpc-url base_sepolia \
   --broadcast \
   --private-key $DEPLOYER_PRIVATE_KEY \
   --verify
 
-# Update .env.local with deployed address
+# Copy the logged address into .env.local
 VENICE_COLLAPSE_ENFORCER_ADDRESS=0x...
 ```
 
 ---
 
-## 18. Testing Strategy
+## 17. Testing Strategy
 
-### 18.1 Contract Tests (Foundry)
+### 17.1 Contract Tests (Foundry)
 
 `/contracts/test/VeniceCollapseEnforcer.t.sol`
 
@@ -2480,7 +2368,7 @@ contract VeniceCollapseEnforcerTest is Test {
 }
 ```
 
-### 18.2 Unit Tests (Vitest)
+### 17.2 Unit Tests (Vitest)
 
 ```typescript
 // services/__tests__/veniceAgentService.test.ts
@@ -2522,7 +2410,7 @@ describe('AgentOutputSchema', () => {
 })
 ```
 
-### 18.3 Integration Tests
+### 17.3 Integration Tests
 
 Test the full session lifecycle against Base Sepolia. Use a dedicated test wallet with a small USDC balance. Mark these tests with `@integration` and skip in CI unless `RUN_INTEGRATION=true`.
 
@@ -2541,7 +2429,7 @@ describe.skipIf(!process.env.RUN_INTEGRATION)('Full session flow', () => {
 })
 ```
 
-### 18.4 E2E Tests (Playwright)
+### 17.4 E2E Tests (Playwright)
 
 ```typescript
 // e2e/session.spec.ts
@@ -2558,7 +2446,7 @@ test('user can create and observe a session collapse', async ({ page }) => {
 
 ---
 
-## 19. Phase-by-Phase Implementation Plan
+## 18. Phase-by-Phase Implementation Plan
 
 ### Phase 1 — Foundation (Day 1, ~4 hours)
 
@@ -2669,31 +2557,30 @@ test('user can create and observe a session collapse', async ({ page }) => {
 
 ---
 
-### Phase 6 — Mainnet Path + Polish (Day 4, ~3 hours)
+### Phase 6 — Polish + Demo (Day 4, ~3 hours)
 
-**Goal:** Switch to Base mainnet, fund properly, record demo video.
+**Goal:** Everything running on Base Sepolia. Record demo video. Submit.
 
 **Tasks:**
-1. Switch chain config to Base mainnet (8453)
-2. Deploy `VeniceCollapseEnforcer` to Base mainnet, verify on Basescan
-3. Fund agent wallets with real USDC (Base)
-4. Run full end-to-end session on mainnet — verify all txs on Basescan
-5. Build `/about` page with architecture diagram and track breakdown
-6. Add `DelegationDisabledBadge` pulling live state from `disabledDelegations(hash)` view
-7. Record demo video — must show MetaMask Smart Accounts Kit, Venice reasoning, 1Shot, onchain enforcer
-8. Submit
+1. Build `/about` page with architecture diagram and track breakdown
+2. Add `DelegationDisabledBadge` pulling live state from `disabledDelegations(hash)` view
+3. Fund agent wallets with testnet USDC (Base Sepolia faucet or Coinbase)
+4. Run full end-to-end session — verify all txs on Basescan Sepolia
+5. Deploy to Vercel — set all env vars in Vercel dashboard
+6. Record demo video — must show MetaMask Smart Accounts Kit, Venice reasoning, 1Shot, onchain enforcer
+7. Submit
 
 **Critical checklist before submitting:**
 - [ ] EIP-7702 account upgrade goes through 1Shot relayer (hackathon requirement)
-- [ ] EIP-7710 transactions relay through 1Shot mainnet relayer (hackathon requirement)
+- [ ] EIP-7710 transactions relay through 1Shot relayer (hackathon requirement)
 - [ ] Venice called via x402 (no API key visible in code)
 - [ ] `reasoning_content` visibly drives collapse — show it in demo
-- [ ] Block explorer clearly shows: custom caveat enforcer address, hash verification, delegation disables
+- [ ] Block explorer (Basescan Sepolia) shows: custom caveat enforcer address, hash verification, delegation disables
 - [ ] Webhook-driven status updates (not polling) — 1Shot `destinationUrl` set
 
 ---
 
-## 20. Environment Variables Reference
+## 19. Environment Variables Reference
 
 ```bash
 # .env.example
@@ -2706,9 +2593,8 @@ DATABASE_URL=postgresql://user:pass@host:5432/waveagent
 REDIS_URL=redis://localhost:6379
 
 # ─────────────────────────────────────────────── Blockchain ───────────
-# Chain: 8453 = Base mainnet, 84532 = Base Sepolia
+# Base Sepolia only (chain 84532)
 CHAIN_ID=84532
-BASE_RPC_URL=https://mainnet.base.org
 BASE_SEPOLIA_RPC_URL=https://sepolia.base.org
 
 # Contract Addresses
