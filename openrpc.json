@@ -1,0 +1,1512 @@
+{
+  "openrpc": "1.4.1",
+  "info": {
+    "title": "1Shot Relayer JSON-RPC API",
+    "description": "OpenRPC description of the relayer JSON-RPC surface exposed at POST /relayers.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "name": "Relayer Endpoint",
+      "url": "/relayers",
+      "summary": "JSON-RPC HTTP endpoint"
+    }
+  ],
+  "externalDocs": {
+    "description": "Relayer protocol background",
+    "url": "https://github.com/limyeechern/relayer-spec/blob/main/spec.md"
+  },
+  "methods": [
+    {
+      "name": "relayer_getFeeData",
+      "summary": "Get exchange rate and fee metadata",
+      "description": "Fetches fee quote and token pricing metadata for a chain/token pair.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerGetFeeDataParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerGetFeeDataResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/RateLimitExceeded"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "GetFeeDataExample",
+          "params": [
+            {
+              "name": "params",
+              "value": {
+                "chainId": "8453",
+                "token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+              }
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": {
+              "chainId": "8453",
+              "token": {
+                "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                "decimals": 6,
+                "symbol": "USDC",
+                "name": "USD Coin"
+              },
+              "rate": 2000.5,
+              "minFee": "4.5",
+              "expiry": 1755917874,
+              "gasPrice": "0x4a817c800",
+              "feeCollector": "0x1111111111111111111111111111111111111111",
+              "targetAddress": "0x2222222222222222222222222222222222222222",
+              "context": "{\"quote\":\"signed\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "relayer_getCapabilities",
+      "summary": "Get relayer capabilities by chain",
+      "description": "Returns supported payment token metadata and fee collector/target addresses by chain id.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerGetCapabilitiesParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerGetCapabilitiesResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/Unauthorized"
+        },
+        {
+          "$ref": "#/components/errors/UnsupportedChain"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "GetCapabilitiesExample",
+          "params": [
+            {
+              "name": "params",
+              "value": [
+                "8453",
+                "84532"
+              ]
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": {
+              "8453": {
+                "feeCollector": "0x1111111111111111111111111111111111111111",
+                "targetAddress": "0x2222222222222222222222222222222222222222",
+                "tokens": [
+                  {
+                    "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                    "symbol": "USDC",
+                    "decimals": "6"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "relayer_sendTransaction",
+      "summary": "Submit a single relayed transaction",
+      "description": "Submits one relayed execution intent and returns a TaskId.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerSendTransactionParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerSendTransactionResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/UserRejectedRequest"
+        },
+        {
+          "$ref": "#/components/errors/Unauthorized"
+        },
+        {
+          "$ref": "#/components/errors/InsufficientPayment"
+        },
+        {
+          "$ref": "#/components/errors/InvalidSignature"
+        },
+        {
+          "$ref": "#/components/errors/UnsupportedPaymentToken"
+        },
+        {
+          "$ref": "#/components/errors/RateLimitExceeded"
+        },
+        {
+          "$ref": "#/components/errors/QuoteExpired"
+        },
+        {
+          "$ref": "#/components/errors/InsufficientBalance"
+        },
+        {
+          "$ref": "#/components/errors/UnsupportedChain"
+        },
+        {
+          "$ref": "#/components/errors/TransactionTooLarge"
+        },
+        {
+          "$ref": "#/components/errors/UnsupportedCapability"
+        },
+        {
+          "$ref": "#/components/errors/InvalidAuthorizationList"
+        },
+        {
+          "$ref": "#/components/errors/SimulationFailed"
+        },
+        {
+          "$ref": "#/components/errors/InvalidTaskId"
+        },
+        {
+          "$ref": "#/components/errors/DuplicateTaskId"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "SendTransactionExample",
+          "params": [
+            {
+              "name": "params",
+              "value": {
+                "chainId": "8453",
+                "payment": {
+                  "type": "token",
+                  "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+                },
+                "to": "0x55f3a93f544e01ce4378d25e927d7c493b863bd7",
+                "data": "0x29cb0f49",
+                "taskId": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"
+              }
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331"
+          }
+        }
+      ]
+    },
+    {
+      "name": "relayer_sendTransactionMultichain",
+      "summary": "Submit multichain relayed transactions",
+      "description": "Submits multiple relayed execution intents and returns TaskIds in order.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerSendTransactionMultichainParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerSendTransactionMultichainResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/MultichainNotSupported"
+        },
+        {
+          "$ref": "#/components/errors/InvalidTaskId"
+        },
+        {
+          "$ref": "#/components/errors/DuplicateTaskId"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "SendTransactionMultichainExample",
+          "params": [
+            {
+              "name": "params",
+              "value": [
+                {
+                  "chainId": "1",
+                  "payment": {
+                    "type": "token",
+                    "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+                  },
+                  "to": "0x55f3a93f544e01ce4378d25e927d7c493b863bd7",
+                  "data": "0x29cb0f49"
+                },
+                {
+                  "chainId": "8453",
+                  "payment": {
+                    "type": "sponsored"
+                  },
+                  "to": "0x45f3a93f544e01ce4378d25e927d7c493b863bd7",
+                  "data": "0x19ca0f49"
+                }
+              ]
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": [
+              "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+              "0x0cf041f5929caf14ba166da4a4c5fe929a87cf2673b127b7f5c94167f6d2cd94"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "relayer_send7710Transaction",
+      "summary": "Submit a single 7710 delegated transaction bundle",
+      "description": "Submits one ERC-7710 style delegated transaction bundle and returns a TaskId.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerSend7710TransactionParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerSend7710TransactionResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/UnsupportedCapability"
+        },
+        {
+          "$ref": "#/components/errors/InvalidAuthorizationList"
+        },
+        {
+          "$ref": "#/components/errors/InvalidTaskId"
+        },
+        {
+          "$ref": "#/components/errors/DuplicateTaskId"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "Send7710TransactionExample",
+          "params": [
+            {
+              "name": "params",
+              "value": {
+                "chainId": "84532",
+                "transactions": [
+                  {
+                    "permissionContext": [
+                      {
+                        "delegate": "0x1111111111111111111111111111111111111111",
+                        "delegator": "0x2222222222222222222222222222222222222222",
+                        "authority": "0x0000000000000000000000000000000000000000",
+                        "caveats": [
+                          {
+                            "enforcer": "0x3333333333333333333333333333333333333333",
+                            "terms": "0x",
+                            "args": "0x"
+                          }
+                        ],
+                        "salt": "0x01",
+                        "signature": "0xabc"
+                      }
+                    ],
+                    "executions": [
+                      {
+                        "target": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                        "value": "0x0",
+                        "data": "0xa9059cbb0000000000000000000000001111111111111111111111111111111111111111"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": "0x3f670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527abc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "relayer_send7710TransactionMultichain",
+      "summary": "Submit multichain 7710 delegated bundles",
+      "description": "Submits multiple ERC-7710 style delegated transaction bundles and returns TaskIds in order.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerSend7710TransactionMultichainParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerSend7710TransactionMultichainResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/MultichainNotSupported"
+        },
+        {
+          "$ref": "#/components/errors/InvalidTaskId"
+        },
+        {
+          "$ref": "#/components/errors/DuplicateTaskId"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "Send7710TransactionMultichainExample",
+          "params": [
+            {
+              "name": "params",
+              "value": [
+                {
+                  "chainId": "84532",
+                  "transactions": [
+                    {
+                      "permissionContext": [],
+                      "executions": [
+                        {
+                          "target": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                          "value": "0x0",
+                          "data": "0x"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "chainId": "8453",
+                  "transactions": [
+                    {
+                      "permissionContext": [],
+                      "executions": [
+                        {
+                          "target": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+                          "value": "0x0",
+                          "data": "0x"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": [
+              "0x1111111111111111111111111111111111111111111111111111111111111111",
+              "0x2222222222222222222222222222222222222222222222222222222222222222"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "relayer_estimate7710Transaction",
+      "summary": "Estimate 7710 delegated bundle fee (synchronous)",
+      "description": "Same params as relayer_send7710Transaction; runs validation and 1Shot gas estimate without persisting a task or relayer row. Returns combined fee in the first mock payment token plus signed price quote `context` / `contextByChainId` (same signing as relayer_getFeeData) for params.context on send.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerEstimate7710TransactionParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerEstimate7710TransactionResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ]
+    },
+    {
+      "name": "relayer_estimate7710TransactionMultichain",
+      "summary": "Estimate multichain 7710 bundle fee (synchronous)",
+      "description": "Same params as relayer_send7710TransactionMultichain; returns a single combined quote in the first mock payment token with per-chain gas unit sums, plus signed `context` / `contextByChainId` for each chain.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerEstimate7710TransactionMultichainParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerEstimate7710TransactionResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ]
+    },
+    {
+      "name": "relayer_getStatus",
+      "summary": "Get relayed transaction status",
+      "description": "Fetches status for a previously submitted task id.",
+      "params": [
+        {
+          "$ref": "#/components/contentDescriptors/RelayerGetStatusParams"
+        }
+      ],
+      "result": {
+        "$ref": "#/components/contentDescriptors/RelayerGetStatusResult"
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/MethodNotFound"
+        },
+        {
+          "$ref": "#/components/errors/InvalidParams"
+        },
+        {
+          "$ref": "#/components/errors/UnknownTransactionId"
+        },
+        {
+          "$ref": "#/components/errors/ServerError"
+        }
+      ],
+      "examples": [
+        {
+          "name": "GetStatusConfirmedExample",
+          "params": [
+            {
+              "name": "params",
+              "value": {
+                "id": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+                "logs": false
+              }
+            }
+          ],
+          "result": {
+            "name": "result",
+            "value": {
+              "id": "0x0e670ec64341771606e55d6b4ca35a1a6b75ee3d5145a99d05921026d1527331",
+              "chainId": "8453",
+              "createdAt": 1755917874,
+              "status": 200,
+              "receipt": {
+                "blockHash": "0x6789b0746d84002f2f258129cfd9714d412e78b4d91b8e61608fac9165988baf",
+                "blockNumber": "0x22a1e6e",
+                "gasUsed": "0x9cf2",
+                "transactionHash": "0xd9b01a72502e7f518fb043bfacd1e13b07f24995f404f8cbb60a1212ca8b4c42"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Address": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      },
+      "HexData": {
+        "type": "string",
+        "pattern": "^0x([a-fA-F0-9]{2})*$"
+      },
+      "TaskId": {
+        "type": "string",
+        "pattern": "^0x[a-fA-F0-9]{64}$"
+      },
+      "JSONRpcId": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ]
+      },
+      "JSONRPCErrorData": {
+        "type": [
+          "object",
+          "string",
+          "number",
+          "boolean",
+          "array",
+          "null"
+        ]
+      },
+      "JSONRPCError": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JSONRPCErrorData"
+          }
+        }
+      },
+      "TokenDetails": {
+        "type": "object",
+        "required": [
+          "address",
+          "decimals"
+        ],
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "decimals": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Payment": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "type",
+              "address"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "token"
+                ]
+              },
+              "address": {
+                "$ref": "#/components/schemas/Address"
+              },
+              "data": {}
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "sponsored"
+                ]
+              },
+              "data": {}
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AuthorizationListEntry": {
+        "type": "object",
+        "required": [
+          "address",
+          "chainId",
+          "nonce",
+          "r",
+          "s",
+          "yParity"
+        ],
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "chainId": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "nonce": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "r": {
+            "type": "string"
+          },
+          "s": {
+            "type": "string"
+          },
+          "yParity": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "SendTransactionParams": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "payment",
+          "to",
+          "data"
+        ],
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/Payment"
+          },
+          "to": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "data": {
+            "$ref": "#/components/schemas/HexData"
+          },
+          "context": {
+            "type": "string"
+          },
+          "authorizationList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorizationListEntry"
+            }
+          },
+          "taskId": {
+            "$ref": "#/components/schemas/TaskId"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Caveat7710": {
+        "type": "object",
+        "required": [
+          "enforcer",
+          "terms",
+          "args"
+        ],
+        "properties": {
+          "enforcer": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "args": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "Delegation7710": {
+        "type": "object",
+        "required": [
+          "delegate",
+          "delegator",
+          "authority",
+          "caveats",
+          "salt",
+          "signature"
+        ],
+        "properties": {
+          "delegate": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "delegator": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "authority": {
+            "type": "string"
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Caveat7710"
+            }
+          },
+          "salt": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "Execution7710": {
+        "type": "object",
+        "required": [
+          "target",
+          "value",
+          "data"
+        ],
+        "properties": {
+          "target": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "value": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/HexData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelegatedTransaction7710": {
+        "type": "object",
+        "required": [
+          "permissionContext",
+          "executions"
+        ],
+        "properties": {
+          "permissionContext": {
+            "type": "array",
+            "description": "Delegation chain used by runtime types and scripts.",
+            "items": {
+              "$ref": "#/components/schemas/Delegation7710"
+            }
+          },
+          "executions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Execution7710"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Send7710TransactionParams": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "transactions"
+        ],
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DelegatedTransaction7710"
+            }
+          },
+          "authorizationList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuthorizationListEntry"
+            }
+          },
+          "context": {
+            "type": "string"
+          },
+          "taskId": {
+            "$ref": "#/components/schemas/TaskId"
+          },
+          "destinationUrl": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "memo": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Optional opaque memo (7710 send); echoed in relayer_getStatus when set."
+          }
+        },
+        "additionalProperties": false
+      },
+      "Estimate7710TransactionResult": {
+        "type": "object",
+        "required": ["success", "gasUsed"],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "paymentTokenAddress": {
+            "type": "string"
+          },
+          "paymentChain": {
+            "type": "integer"
+          },
+          "gasUsed": {
+            "type": "object",
+            "description": "Map of chain id string to summed gas units (decimal string) from 1Shot estimate.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "requiredPaymentAmount": {
+            "type": "string",
+            "description": "Required fee in paymentTokenAddress smallest units (decimal string); floored to chain/token minFee."
+          },
+          "context": {
+            "type": "string",
+            "description": "Serialized signed price quote for the first payment chain; pass as params.context on send7710."
+          },
+          "contextByChainId": {
+            "type": "object",
+            "description": "Per-chain serialized signed quotes keyed by chain id string.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "error": {
+            "type": "string",
+            "description": "Present when success is false."
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetFeeDataParams": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "token"
+        ],
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "token": {
+            "$ref": "#/components/schemas/Address"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetFeeDataResult": {
+        "type": "object",
+        "required": [
+          "chainId",
+          "token",
+          "rate",
+          "minFee",
+          "expiry",
+          "gasPrice",
+          "feeCollector"
+        ],
+        "properties": {
+          "chainId": {
+            "type": "string"
+          },
+          "token": {
+            "$ref": "#/components/schemas/TokenDetails"
+          },
+          "rate": {
+            "type": "number"
+          },
+          "minFee": {
+            "type": "string"
+          },
+          "expiry": {
+            "type": "integer"
+          },
+          "gasPrice": {
+            "type": "string"
+          },
+          "feeCollector": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "targetAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "context": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Capability": {
+        "type": "object",
+        "required": [
+          "feeCollector",
+          "targetAddress",
+          "tokens"
+        ],
+        "properties": {
+          "feeCollector": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "targetAddress": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TokenDetails"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetCapabilitiesResult": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Capability"
+        }
+      },
+      "GetStatusParams": {
+        "type": "object",
+        "required": [
+          "id",
+          "logs"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TaskId"
+          },
+          "logs": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatusLog": {
+        "type": "object",
+        "required": [
+          "address",
+          "topics",
+          "data"
+        ],
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StatusReceipt": {
+        "type": "object",
+        "required": [
+          "blockHash",
+          "blockNumber",
+          "gasUsed",
+          "transactionHash"
+        ],
+        "properties": {
+          "blockHash": {
+            "type": "string"
+          },
+          "blockNumber": {
+            "type": "string"
+          },
+          "gasUsed": {
+            "type": "string"
+          },
+          "transactionHash": {
+            "type": "string"
+          },
+          "logs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatusLog"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "BaseStatus": {
+        "type": "object",
+        "required": [
+          "id",
+          "chainId",
+          "createdAt",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/TaskId"
+          },
+          "chainId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "number"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "memo": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Present when the intent included a 7710 send memo; omitted otherwise."
+          }
+        }
+      },
+      "PendingStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStatus"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "integer",
+                "enum": [
+                  100
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "SubmittedStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStatus"
+          },
+          {
+            "type": "object",
+            "required": [
+              "hash"
+            ],
+            "properties": {
+              "status": {
+                "type": "integer",
+                "enum": [
+                  110
+                ]
+              },
+              "hash": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "ConfirmedStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStatus"
+          },
+          {
+            "type": "object",
+            "required": [
+              "receipt"
+            ],
+            "properties": {
+              "status": {
+                "type": "integer",
+                "enum": [
+                  200
+                ]
+              },
+              "receipt": {
+                "$ref": "#/components/schemas/StatusReceipt"
+              }
+            }
+          }
+        ]
+      },
+      "RejectedStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStatus"
+          },
+          {
+            "type": "object",
+            "required": [
+              "message"
+            ],
+            "properties": {
+              "status": {
+                "type": "integer",
+                "enum": [
+                  400
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "data": {}
+            }
+          }
+        ]
+      },
+      "RevertedStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseStatus"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "status": {
+                "type": "integer",
+                "enum": [
+                  500
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "data": {
+                "$ref": "#/components/schemas/HexData"
+              }
+            }
+          }
+        ]
+      },
+      "GetStatusResult": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PendingStatus"
+          },
+          {
+            "$ref": "#/components/schemas/SubmittedStatus"
+          },
+          {
+            "$ref": "#/components/schemas/ConfirmedStatus"
+          },
+          {
+            "$ref": "#/components/schemas/RejectedStatus"
+          },
+          {
+            "$ref": "#/components/schemas/RevertedStatus"
+          }
+        ]
+      }
+    },
+    "contentDescriptors": {
+      "RelayerGetFeeDataParams": {
+        "name": "params",
+        "summary": "relayer_getFeeData params",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/GetFeeDataParams"
+        }
+      },
+      "RelayerGetFeeDataResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/GetFeeDataResult"
+        }
+      },
+      "RelayerGetCapabilitiesParams": {
+        "name": "params",
+        "summary": "Chain ids array",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "RelayerGetCapabilitiesResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/GetCapabilitiesResult"
+        }
+      },
+      "RelayerSendTransactionParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/SendTransactionParams"
+        }
+      },
+      "RelayerSendTransactionResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/TaskId"
+        }
+      },
+      "RelayerSendTransactionMultichainParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/SendTransactionParams"
+          }
+        }
+      },
+      "RelayerSendTransactionMultichainResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/TaskId"
+          }
+        }
+      },
+      "RelayerSend7710TransactionParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Send7710TransactionParams"
+        }
+      },
+      "RelayerSend7710TransactionResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/TaskId"
+        }
+      },
+      "RelayerSend7710TransactionMultichainParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Send7710TransactionParams"
+          }
+        }
+      },
+      "RelayerSend7710TransactionMultichainResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/TaskId"
+          }
+        }
+      },
+      "RelayerEstimate7710TransactionParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Send7710TransactionParams"
+        }
+      },
+      "RelayerEstimate7710TransactionMultichainParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/Send7710TransactionParams"
+          }
+        }
+      },
+      "RelayerEstimate7710TransactionResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Estimate7710TransactionResult"
+        }
+      },
+      "RelayerGetStatusParams": {
+        "name": "params",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/GetStatusParams"
+        }
+      },
+      "RelayerGetStatusResult": {
+        "name": "result",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/GetStatusResult"
+        }
+      }
+    },
+    "errors": {
+      "MethodNotFound": {
+        "code": -32601,
+        "message": "Method not found"
+      },
+      "InvalidRequest": {
+        "code": -32600,
+        "message": "Invalid Request"
+      },
+      "InvalidParams": {
+        "code": -32602,
+        "message": "Invalid params"
+      },
+      "InternalError": {
+        "code": -32603,
+        "message": "Internal error"
+      },
+      "ServerError": {
+        "code": -1,
+        "message": "Internal error"
+      },
+      "UserRejectedRequest": {
+        "code": 4001,
+        "message": "User Rejected Request"
+      },
+      "Unauthorized": {
+        "code": 4100,
+        "message": "Unauthorized"
+      },
+      "InsufficientPayment": {
+        "code": 4200,
+        "message": "Insufficient Payment"
+      },
+      "InvalidSignature": {
+        "code": 4201,
+        "message": "Invalid Signature"
+      },
+      "UnsupportedPaymentToken": {
+        "code": 4202,
+        "message": "Unsupported Payment Token"
+      },
+      "RateLimitExceeded": {
+        "code": 4203,
+        "message": "Rate Limit Exceeded"
+      },
+      "QuoteExpired": {
+        "code": 4204,
+        "message": "Quote Expired"
+      },
+      "InsufficientBalance": {
+        "code": 4205,
+        "message": "Insufficient Balance"
+      },
+      "UnsupportedChain": {
+        "code": 4206,
+        "message": "Unsupported Chain"
+      },
+      "TransactionTooLarge": {
+        "code": 4207,
+        "message": "Transaction Too Large"
+      },
+      "UnknownTransactionId": {
+        "code": 4208,
+        "message": "Unknown Transaction ID"
+      },
+      "UnsupportedCapability": {
+        "code": 4209,
+        "message": "Unsupported Capability"
+      },
+      "InvalidAuthorizationList": {
+        "code": 4210,
+        "message": "Invalid Authorization List"
+      },
+      "SimulationFailed": {
+        "code": 4211,
+        "message": "Simulation Failed"
+      },
+      "MultichainNotSupported": {
+        "code": 4212,
+        "message": "Multichain Not Supported"
+      },
+      "InvalidTaskId": {
+        "code": 4213,
+        "message": "Invalid Task ID"
+      },
+      "DuplicateTaskId": {
+        "code": 4214,
+        "message": "Duplicate Task ID"
+      }
+    }
+  }
+}
