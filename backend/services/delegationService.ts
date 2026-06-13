@@ -3,7 +3,7 @@ import {
   ScopeType,
   type Delegation,
 } from '@metamask/smart-accounts-kit'
-import { redelegatePermissionContextAction } from '@metamask/smart-accounts-kit/actions'
+import { redelegatePermissionContextOpenAction } from '@metamask/smart-accounts-kit/actions'
 import {
   keccak256,
   toBytes,
@@ -11,6 +11,7 @@ import {
   encodeAbiParameters,
   parseAbiParameters,
   createWalletClient,
+  custom,
   http,
 } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -119,12 +120,45 @@ export async function redelegateAgentContexts(params: {
   const agentA = agents[0]
   const agentAKey = process.env.AGENT_A_PRIVATE_KEY as Hex | undefined
   if (!agentAKey) throw new Error('AGENT_A_PRIVATE_KEY is not set')
+  const eoa = privateKeyToAccount(agentAKey)
 
   // Agent A is the root delegate; it signs the redelegations to each agent.
+  //
+  // `redelegatePermissionContextAction` signs the child delegation by calling
+  // eth_signTypedData_v4 *through the client's transport*, passing the SMART-ACCOUNT
+  // address as the signer — so viem's normal local-account signing path is bypassed.
+  // A plain http() transport forwards that to the RPC node, which holds no keys, giving
+  // "rpc method is unsupported". This transport intercepts the signing method and signs
+  // locally with Agent A's owner EOA (exactly what MetaMask does in the browser), and
+  // forwards every other method to the real RPC.
+  const rpc = http(process.env.BASE_SEPOLIA_RPC_URL)({ chain: baseSepolia })
+  const localSigner = {
+    request: async ({ method, params }: { method: string; params?: unknown }): Promise<unknown> => {
+      if (method === 'eth_signTypedData_v4') {
+        const raw = (params as [string, string | object])[1]
+        const typed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        const types = { ...(typed.types ?? {}) }
+        delete types.EIP712Domain // viem derives this from `domain`; including it can clash.
+        return eoa.signTypedData({
+          domain: typed.domain,
+          types,
+          primaryType: typed.primaryType,
+          message: typed.message,
+        } as Parameters<typeof eoa.signTypedData>[0])
+      }
+      if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+        return [eoa.address]
+      }
+      return (rpc.request as (a: { method: string; params?: unknown }) => Promise<unknown>)({
+        method,
+        params,
+      })
+    },
+  }
   const signer = createWalletClient({
-    account: privateKeyToAccount(agentAKey),
+    account: eoa,
     chain: baseSepolia,
-    transport: http(process.env.BASE_SEPOLIA_RPC_URL),
+    transport: custom(localSigner as Parameters<typeof custom>[0]),
   })
 
   const out: AgentContext[] = []
@@ -133,11 +167,14 @@ export async function redelegateAgentContexts(params: {
       parseAbiParameters('bytes32 sessionId, uint8 agentId'),
       [sessionId, target.agentId]
     )
-    const { permissionContext } = await redelegatePermissionContextAction(signer, {
+    // OPEN redelegation (delegate = ANY_DELEGATE): the backend EOA relays the redeem tx,
+    // so the leaf delegate can't be a specific agent smart account (that would revert with
+    // InvalidDelegate — msg.sender wouldn't match). The VeniceCollapseEnforcer still gates by
+    // (sessionId, agentId), so only the collapse winner's context is redeemable; losers revert.
+    const { permissionContext } = await redelegatePermissionContextOpenAction(signer, {
       account: agentA.smartAccount.address,
       environment: agentA.smartAccount.environment,
       permissionContext: rootContext,
-      to: target.smartAccount.address,
       scope: {
         type: ScopeType.Erc20TransferAmount,
         tokenAddress: USDC_ADDRESS,
