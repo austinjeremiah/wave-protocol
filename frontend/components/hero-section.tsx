@@ -34,7 +34,7 @@ export function HeroSection() {
   }, [])
 
   return (
-    <section ref={sectionRef} id="hero" className="relative min-h-screen flex items-center pl-6 md:pl-28 pr-6 md:pr-12">
+    <section ref={sectionRef} id="hero" className="relative min-h-screen flex items-center justify-center px-6 pt-20 pb-16">
       <AnimatedNoise opacity={0.03} />
 
       {/* Left vertical labels */}
@@ -45,9 +45,9 @@ export function HeroSection() {
       </div>
 
       {/* Main content */}
-      <div ref={contentRef} className="flex-1 w-full">
+      <div ref={contentRef} className="mx-auto flex w-full max-w-3xl flex-col items-center text-center">
         <SplitFlapAudioProvider>
-          <div className="relative">
+          <div className="relative flex flex-col items-center">
             <SplitFlapText text="WAVE" speed={80} />
             <div className="mt-4">
               <SplitFlapMuteToggle />
@@ -55,17 +55,17 @@ export function HeroSection() {
           </div>
         </SplitFlapAudioProvider>
 
-        <h2 className="font-[var(--font-bebas)] text-muted-foreground/60 text-[clamp(1rem,3vw,2rem)] mt-4 tracking-wide">
-          Protocol — The AI Yield Manager
+        <h2 className="font-[var(--font-bebas)] text-foreground/85 text-[clamp(1rem,3vw,2rem)] mt-4 tracking-wide">
+          Strategies in superposition. Consensus onchain.
         </h2>
 
-        <p className="mt-12 max-w-md font-mono text-sm text-muted-foreground leading-relaxed">
-          Deposit idle stablecoins. Three AI agents debate the best yield strategy and deploy your
-          capital onchain — a caveat enforcer guarantees they can only act on consensus. You own the
-          position and the yield.
+        <p className="mt-12 max-w-md font-mono text-sm text-foreground/70 leading-relaxed">
+          Deposit idle USDC. Three AI agents debate in parallel and stake real conviction — a custom
+          caveat enforcer collapses them to one consensus strategy onchain. You own the position and
+          the yield.
         </p>
 
-        <div className="mt-16 flex items-center gap-8">
+        <div className="mt-16 flex items-center justify-center gap-8">
           <a
             href="/session/new"
             className="group glass glass-hover inline-flex items-center gap-3 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:text-accent"

@@ -11,27 +11,27 @@ const signals = [
   {
     date: "DEPOSIT",
     title: "Goal",
-    note: "You set a goal/risk and an amount of idle USDC to put to work. That's the entire input.",
+    note: "Set a goal, a risk tolerance, and an amount of idle USDC. That's the entire input.",
   },
   {
     date: "VENICE",
     title: "Debate",
-    note: "Three strategist lenses — Yield, Risk, Liquidity — debate the best strategy in parallel via Venice AI, then critique each other.",
+    note: "Three lenses — Yield, Risk, Liquidity — reason in parallel via Venice AI, then critique each other's calls.",
   },
   {
     date: "x402",
     title: "Conviction",
-    note: "Each agent pays for its own inference with x402 — and bets more USDC the more confident it is. Real skin in the game, onchain.",
+    note: "Each agent funds its own inference with x402 — and stakes more USDC the more it believes. Real skin in the game.",
   },
   {
     date: "ERC-7710",
     title: "Consensus",
-    note: "Reasoning is hashed and committed to a custom caveat enforcer that collapses to the highest-conviction strategy onchain.",
+    note: "Every reasoning hash commits to a custom caveat enforcer that collapses to the highest-conviction strategy onchain.",
   },
   {
     date: "COMPOUND V3",
     title: "You Own It",
-    note: "The winning strategy deploys your USDC into Compound V3 — credited to you. You own the position and the yield; the enforcer keeps the AI on-strategy.",
+    note: "The winner supplies your USDC to Compound V3, credited to you. The enforcer keeps the AI on-strategy — you keep the yield.",
   },
 ]
 
@@ -172,7 +172,7 @@ function SignalCard({
       )}
     >
       {/* Frosted glass card */}
-      <div className="glass glass-hover relative p-8">
+      <div className="glass glass-hover relative flex h-full flex-col p-8">
         {/* Issue number - editorial style */}
         <div className="flex items-baseline justify-between mb-8">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">

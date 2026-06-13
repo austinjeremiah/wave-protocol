@@ -42,27 +42,27 @@ export function SideNav() {
   }
 
   return (
-    <nav className="fixed left-3 top-1/2 z-50 -translate-y-1/2 w-14 hidden md:flex flex-col justify-center glass py-6">
-      <div className="flex flex-col gap-6 px-4">
+    <div className="fixed inset-x-0 top-4 z-50 hidden md:flex justify-center pointer-events-none">
+      <nav className="glass pointer-events-auto flex items-center gap-1 px-2 py-2">
         {navItems.map(({ id, label }) => (
-          <button key={id} onClick={() => scrollToSection(id)} className="group relative flex items-center gap-3">
+          <button
+            key={id}
+            onClick={() => scrollToSection(id)}
+            className={cn(
+              "group flex items-center gap-2 rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors duration-200",
+              activeSection === id ? "text-accent" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
             <span
               className={cn(
                 "h-1.5 w-1.5 rounded-full transition-all duration-300",
                 activeSection === id ? "bg-accent scale-125" : "bg-muted-foreground/40 group-hover:bg-foreground/60",
               )}
             />
-            <span
-              className={cn(
-                "absolute left-6 font-mono text-[10px] uppercase tracking-widest opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:left-8 whitespace-nowrap",
-                activeSection === id ? "text-accent" : "text-muted-foreground",
-              )}
-            >
-              {label}
-            </span>
+            {label}
           </button>
         ))}
-      </div>
-    </nav>
+      </nav>
+    </div>
   )
 }

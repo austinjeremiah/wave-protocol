@@ -12,31 +12,31 @@ const experiments = [
     title: "Constrained AI",
     medium: "ERC-7710 / Solidity",
     description:
-      "Our custom caveat enforcer on Base Sepolia. The vault physically cannot deploy your funds unless the agent swarm reached onchain consensus — the AI can only act on the agreed strategy, within your budget.",
+      "Our caveat enforcer on Base Sepolia. The vault physically can't deploy your funds until the swarm reaches onchain consensus — and only ever on the agreed strategy, within your budget.",
     span: "col-span-2 row-span-2",
   },
   {
     title: "Venice AI",
     medium: "Inference",
-    description: "Three yield strategists think in parallel and debate; chain-of-thought hashed onchain.",
+    description: "Three strategists reason in parallel and debate. Every chain-of-thought is hashed onchain.",
     span: "col-span-1 row-span-1",
   },
   {
     title: "x402",
     medium: "Payments",
-    description: "Agents pay per inference in USDC via EIP-3009 — and bet more the more confident they are.",
+    description: "Agents pay per inference in USDC via EIP-3009 — and stake more the more confident they are.",
     span: "col-span-1 row-span-2",
   },
   {
     title: "Compound V3",
     medium: "Yield",
-    description: "The winning strategy supplies your USDC to Compound V3 — credited to you. You own the position + yield.",
+    description: "The winning strategy supplies your USDC to Compound V3, credited to you. The position and yield are yours.",
     span: "col-span-1 row-span-1",
   },
   {
     title: "A2A Coordination",
     medium: "Consensus",
-    description: "Agents critique each other across debate rounds; the onchain collapse is the agreement mechanism.",
+    description: "Agents critique each other across rounds. The onchain collapse is the agreement mechanism.",
     span: "col-span-2 row-span-1",
   },
   {
