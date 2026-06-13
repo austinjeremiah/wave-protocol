@@ -45,7 +45,7 @@ Respond with ONLY a JSON object with these exact fields — no prose, no code fe
   "summary": "your recommended stablecoin yield strategy in 1-2 sentences",
   "confidence": <integer 0-100, how confident you are this is the best risk-adjusted strategy>,
   "action": "the single concrete action (e.g. 'Supply USDC to Compound V3 for lending yield')",
-  "reasoning": "a thorough 4-6 sentence analysis from your ${role} lens — quantify the expected yield, name the specific risks (smart-contract, liquidity, rate volatility, depeg), explain why this fits the user's stated goal, and call out the key trade-off you weighed against the alternative"
+  "reasoning": "a detailed analysis (2 paragraphs, ~8-10 sentences) from your ${role} lens. Paragraph 1: the strategy, exactly how the yield is generated on Compound V3, and the realistic expected APY. Paragraph 2: the specific risks (smart-contract, liquidity, rate volatility, depeg), why this fits the user's stated goal, and the key trade-off vs more aggressive alternatives. Be concrete, use numbers, and write it like a fund manager's memo"
 }`
 
 export interface AgentRunResult {
@@ -149,7 +149,7 @@ Be honest: would you put your own capital behind this strategy?
 
 Respond with ONLY a JSON object — no prose, no code fences:
 {
-  "critique": "a substantive 3-5 sentence critique — name the other agents (by number/role), point out a specific weakness or risk each understated, then defend or revise your own position with concrete reasoning",
+  "critique": "a detailed 5-7 sentence critique. Address BOTH other agents by number/role, name a specific weakness, risk, or blind spot each one understated, then defend or revise your own position with concrete reasoning and numbers where you can",
   "revisedConfidence": <integer 0-100>,
   "revisedAction": "your final recommended USDC deployment after the debate",
   "revisedSummary": "refined strategy in 1-2 sentences"

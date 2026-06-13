@@ -105,6 +105,9 @@ export async function executeVaultStrategy(params: {
       abi: VAULT_ABI,
       functionName: 'executeStrategy',
       args: [params.sessionId, params.winnerAgentId, params.userAddress],
+      // Approve + Compound V3 supplyTo costs ~220k; auto-estimation can come in just under
+      // and OOG-revert (leaving USDC stuck in the vault). Fixed buffer avoids that.
+      gas: 600_000n,
     })
   )
 }

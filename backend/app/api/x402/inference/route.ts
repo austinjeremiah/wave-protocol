@@ -142,9 +142,10 @@ export async function POST(req: NextRequest) {
       { role: 'user', content: body.userIntent },
     ],
     temperature: 0.7,
-    // Headroom for a richer multi-sentence reasoning/critique while staying fast (mistral is
-    // ~42 tok/s, so ~400 tokens ≈ 9s). The cap just prevents runaway generation.
-    max_tokens: 800,
+    // Headroom for a fuller fund-manager-style reasoning + a 5-7 sentence critique. It's a CAP,
+    // not a target — the model stops when done, so short answers stay fast (~10-15s for the
+    // richer output on mistral's ~42 tok/s).
+    max_tokens: 1200,
   })
   const message = completion.choices[0]?.message
   const reasoning_content =

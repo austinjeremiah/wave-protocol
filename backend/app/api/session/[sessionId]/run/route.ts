@@ -152,7 +152,7 @@ export async function POST(
             from: res.round1Confidence,
             to: res.revisedConfidence,
             convictionBetUsdc: res.convictionBetUsdc,
-            critique: res.critiqueText.slice(0, 300),
+            critique: res.critiqueText.slice(0, 1000),
             revisedAction: res.revisedAction,
           })
           return res

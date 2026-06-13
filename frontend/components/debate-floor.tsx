@@ -114,10 +114,10 @@ function Podium({ agent, active }: { agent: AgentView; active: boolean }) {
         </span>
       )}
 
-      {/* The actual argument */}
-      <div className="relative z-10 mt-3 flex-1 border-t border-border/40 pt-3">
+      {/* The actual argument — full text (scrolls if long) */}
+      <div className="relative z-10 mt-3 max-h-64 flex-1 overflow-y-auto border-t border-border/40 pt-3">
         {agent.critiqueText ? (
-          <p className="font-mono text-[10px] leading-relaxed text-muted-foreground/80 line-clamp-6 whitespace-pre-wrap">
+          <p className="font-mono text-[10px] leading-relaxed text-muted-foreground/80 whitespace-pre-wrap">
             &ldquo;{agent.critiqueText}&rdquo;
           </p>
         ) : (
