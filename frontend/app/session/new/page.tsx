@@ -82,6 +82,12 @@ export default function NewSessionPage() {
               ← Wave Protocol
             </a>
             <a
+              href="/agents"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              Agents
+            </a>
+            <a
               href="/portfolio"
               className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
             >

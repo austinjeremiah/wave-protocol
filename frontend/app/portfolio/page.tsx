@@ -65,12 +65,20 @@ export default function PortfolioPage() {
       <div className="relative z-10 mx-auto max-w-5xl">
         {/* header */}
         <div className="flex items-center justify-between">
-          <a
-            href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
-          >
-            ← Wave Protocol
-          </a>
+          <div className="flex items-center gap-5">
+            <a
+              href="/"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              ← Wave Protocol
+            </a>
+            <a
+              href="/agents"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              Agents
+            </a>
+          </div>
           <ConnectButton
             address={wallet.address}
             connect={() => wallet.connect().catch((e) => setError((e as Error).message))}
