@@ -143,6 +143,22 @@ export function ColophonSection() {
             </li>
             <li>
               <a
+                href="/explore"
+                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+              >
+                Explore Ledger →
+              </a>
+            </li>
+            <li>
+              <a
+                href="/agents"
+                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+              >
+                Leaderboard →
+              </a>
+            </li>
+            <li>
+              <a
                 href="/portfolio"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >

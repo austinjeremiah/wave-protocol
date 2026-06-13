@@ -65,6 +65,12 @@ export function SideNav() {
 
         <span className="mx-1 h-4 w-px bg-border/60" />
         <a
+          href="/explore"
+          className="flex items-center gap-2 rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors"
+        >
+          Explore
+        </a>
+        <a
           href="/agents"
           className="flex items-center gap-2 rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors"
         >
