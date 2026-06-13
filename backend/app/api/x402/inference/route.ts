@@ -34,7 +34,7 @@ function buildRequirements(resource: string): PaymentRequirements {
     description: 'Wave Protocol Venice inference (x402-gated)',
     mimeType: 'application/json',
     payTo: getBackendAccount().address,
-    maxTimeoutSeconds: 120,
+    maxTimeoutSeconds: 300,
     asset: priced.asset.address,
     extra: priced.asset.eip712,
   }
@@ -85,7 +85,6 @@ export async function POST(req: NextRequest) {
   }
   logger.info(`  💳 x402 payment verified — payer ${String(verification.payer).slice(0, 12)}… — running Venice`)
 
-  // Payment is valid — do the work first, then take payment (don't charge on failure).
   const body = (await req.json().catch(() => ({}))) as {
     systemPrompt?: string
     userIntent?: string
@@ -94,21 +93,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'systemPrompt and userIntent are required' }, { status: 400 })
   }
 
-  const venice = new OpenAI({ apiKey: process.env.VENICE_API_KEY, baseURL: VENICE_API_URL })
-  const completion = await venice.chat.completions.create({
-    model: VENICE_MODEL,
-    messages: [
-      { role: 'system', content: body.systemPrompt },
-      { role: 'user', content: body.userIntent },
-    ],
-    temperature: 0.7,
-  })
-  const message = completion.choices[0]?.message
-  const reasoning_content =
-    (message as { reasoning_content?: string } | undefined)?.reasoning_content ?? ''
-  const content = message?.content ?? ''
-
-  // Settle the payment onchain (nonce-managed backend wallet handles parallel settlements).
+  // SETTLE NOW — before Venice. The EIP-3009 authorization has a limited validity window;
+  // Venice can take minutes, so settling after it would expire the authorization
+  // (invalid_exact_evm_payload_authorization_valid_before). Settle is nonce-managed so the
+  // 3 parallel agents don't collide. Tradeoff: a tiny toll is charged even if Venice errors.
   const settlement = await settle(
     getBackendWalletClient() as unknown as Parameters<typeof settle>[0],
     payment,
@@ -122,6 +110,21 @@ export async function POST(req: NextRequest) {
     )
   }
   logger.info(`  💲 x402 USDC settled onchain — ${String(settlement.transaction).slice(0, 16)}…`)
+
+  // Payment taken — now run Venice (its latency no longer risks the payment authorization).
+  const venice = new OpenAI({ apiKey: process.env.VENICE_API_KEY, baseURL: VENICE_API_URL })
+  const completion = await venice.chat.completions.create({
+    model: VENICE_MODEL,
+    messages: [
+      { role: 'system', content: body.systemPrompt },
+      { role: 'user', content: body.userIntent },
+    ],
+    temperature: 0.7,
+  })
+  const message = completion.choices[0]?.message
+  const reasoning_content =
+    (message as { reasoning_content?: string } | undefined)?.reasoning_content ?? ''
+  const content = message?.content ?? ''
 
   const res = NextResponse.json({
     content,
