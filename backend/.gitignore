@@ -1,0 +1,31 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# env
+.env
+.env.local
+.env.*.local
+
+# prisma generated client
+prisma/migrations/
+
+# foundry (contracts build artifacts + deps)
+contracts/out/
+contracts/cache/
+contracts/lib/
+contracts/broadcast/
+
+# test coverage
+coverage/
+
+# misc
+.DS_Store
+*.log
+*.tsbuildinfo
+.vercel

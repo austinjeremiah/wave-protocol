@@ -1,0 +1,23 @@
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# editor
+.vscode/
+.idea/
+*.swp
+
+# env (safety net — backend/ and frontend/ have their own too)
+.env
+.env.local
+.env.*.local
+
+# deps / build (safety net for any nested dir)
+node_modules/
+.next/
+.vercel
+*.log

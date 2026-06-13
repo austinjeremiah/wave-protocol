@@ -839,9 +839,9 @@ export class OneShotRelayerService {
    * Returns a TaskId for status polling or webhook receipt.
    */
   async send7710Transaction(params: {
-    permissionContext: Hex
-    executions:        Hex[]
-    destinationUrl?:   string
+    delegationContext:  Hex
+    transactions:       Hex[]
+    destinationUrl?:    string
     authorizationList?: any[]
   }): Promise<string> {
     const capabilities = await this.getCapabilities()
@@ -858,12 +858,12 @@ export class OneShotRelayerService {
         jsonrpc: '2.0',
         method:  'relayer_send7710Transaction',
         params:  [{
-          chainId:          CHAIN_ID,
-          permissionContext: params.permissionContext,
-          executions:        params.executions,
-          context:           feeData.context,  // price-locked context
-          destinationUrl:    params.destinationUrl,
-          authorizationList: params.authorizationList,
+          chainId:           CHAIN_ID,
+          delegationContext:  params.delegationContext,
+          transactions:       params.transactions,
+          context:            feeData.context,  // price-locked context
+          destinationUrl:     params.destinationUrl,
+          authorizationList:  params.authorizationList,
         }],
         id: 3,
       }),
@@ -1292,7 +1292,7 @@ interface NewSessionStore {
 ```typescript
 // hooks/usePermissionGrant.ts
 import { useWalletClient }   from 'wagmi'
-import { erc7715ProviderActions } from '@metamask/smart-accounts-kit'
+import { erc7715ProviderActions } from '@metamask/smart-accounts-kit/actions'
 
 export function usePermissionGrant() {
   const { data: walletClient } = useWalletClient()
@@ -1307,20 +1307,17 @@ export function usePermissionGrant() {
 
     const client = walletClient.extend(erc7715ProviderActions())
 
-    const [permissionResponse] = await client.grantPermissions([{
+    const [permissionResponse] = await walletClient.requestExecutionPermissions([{
       chainId: 84532,   // Base Sepolia
       expiry:  Math.floor(Date.now() / 1000) + 3600,  // 1 hour
-      signer: {
-        type:    'account',
-        data:    { id: params.agentAAddress },
-      },
+      to: params.agentAAddress,
       permission: {
-        type:            'erc20-token-periodic',
+        type:                'erc20-token-periodic',
         isAdjustmentAllowed: false,
         data: {
-          token:          '0x036CbD53842c5426634e7929541eC2318f3dCF7e',  // USDC Base Sepolia
-          periodInSeconds: 3600,
-          initialAmount:   BigInt(Math.floor(params.budgetUsdc * 1e6)),
+          tokenAddress:   '0x036CbD53842c5426634e7929541eC2318f3dCF7e',  // USDC Base Sepolia
+          periodDuration: 3600,
+          periodAmount:   BigInt(Math.floor(params.budgetUsdc * 1e6)),
         },
       },
     }])

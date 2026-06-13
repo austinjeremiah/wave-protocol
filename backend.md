@@ -6,6 +6,20 @@
 
 ---
 
+## ⚠️ API Corrections (verified against live docs — these differ from wave.md)
+
+| Location | wave.md says | Actual API |
+|---|---|---|
+| `oneShotRelayerService.ts` | `permissionContext` field | `delegationContext` |
+| `oneShotRelayerService.ts` | `executions` field | `transactions` |
+| Frontend hook (Phase 6) | `import { erc7715ProviderActions } from '@metamask/smart-accounts-kit'` | `from '@metamask/smart-accounts-kit/actions'` |
+| Frontend hook (Phase 6) | `client.grantPermissions([...])` | `walletClient.requestExecutionPermissions([...])` |
+| Frontend hook (Phase 6) | `data.token`, `periodInSeconds`, `initialAmount` | `data.tokenAddress`, `periodDuration`, `periodAmount` |
+
+Everything else in wave.md matches the verified APIs exactly.
+
+---
+
 ## Repo Structure
 
 ```
@@ -532,7 +546,8 @@ System prompt forces JSON output with `{ summary, confidence, action, reasoning 
 - `OneShotRelayerService` class
 - `getCapabilities()` → chain support, feeCollector, targetAddress, accepted tokens (cached)
 - `getFeeData({ chainId, tokenAddress, targetAddress })` → price-locked `context`
-- `send7710Transaction({ permissionContext, executions, destinationUrl?, authorizationList? })` → `taskId`
+- `send7710Transaction({ delegationContext, transactions, destinationUrl?, authorizationList? })` → `taskId`
+  - ⚠️ Field names are `delegationContext` (not `permissionContext`) and `transactions` (not `executions`) — confirmed from 1Shot docs
   - Always calls `getCapabilities` + `getFeeData` first to get fresh `context`
 - `disableDelegation(delegation)` → encodes `DelegationManager.encode.disableDelegation({ delegation })`, sends as transaction
 - `getStatus(taskId)` → `{ status, txHash? }`

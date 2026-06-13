@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "functions": {
+    "app/api/session/[sessionId]/run/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/session/[sessionId]/stream/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
