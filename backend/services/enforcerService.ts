@@ -109,6 +109,9 @@ export async function submitReasoningHash(params: {
       abi: ENFORCER_ABI,
       functionName: 'submitReasoningHash',
       args: [sessionId, agentId, reasoningHash, confidence],
+      // Generous fixed gas: the FINAL submit runs _collapse() too, and auto-estimation can come
+      // in just under that path — an under-gassed collapse tx is what left a session at 2/3.
+      gas: 350_000n,
     })
   )
 }

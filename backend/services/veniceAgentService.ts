@@ -42,10 +42,10 @@ how confident you are it fits them.
 
 Respond with ONLY a JSON object with these exact fields — no prose, no code fences:
 {
-  "summary": "your recommended stablecoin yield strategy, briefly",
+  "summary": "your recommended stablecoin yield strategy in 1-2 sentences",
   "confidence": <integer 0-100, how confident you are this is the best risk-adjusted strategy>,
   "action": "the single concrete action (e.g. 'Supply USDC to Compound V3 for lending yield')",
-  "reasoning": "your reasoning — yield vs risk, liquidity, why it fits the user"
+  "reasoning": "a thorough 4-6 sentence analysis from your ${role} lens — quantify the expected yield, name the specific risks (smart-contract, liquidity, rate volatility, depeg), explain why this fits the user's stated goal, and call out the key trade-off you weighed against the alternative"
 }`
 
 export interface AgentRunResult {
@@ -98,14 +98,17 @@ export async function runAgent(params: {
     }
   }
 
-  if (onReasoning && reasoningContent) onReasoning(reasoningContent)
-
   const parsed = AgentOutputSchema.safeParse(extractJson(content))
   if (!parsed.success) {
     throw new Error(
       `Agent ${agentId} (${role}) returned invalid structured output: ${parsed.error.message}`
     )
   }
+
+  // Fast non-reasoning models return no reasoning_content — fall back to the structured
+  // reasoning so the onchain hash stays UNIQUE per agent and the UI has text to show.
+  if (!reasoningContent) reasoningContent = parsed.data.reasoning || parsed.data.summary || `${role}: ${parsed.data.action}`
+  if (onReasoning && reasoningContent) onReasoning(reasoningContent)
 
   return {
     agentId,
@@ -146,10 +149,10 @@ Be honest: would you put your own capital behind this strategy?
 
 Respond with ONLY a JSON object — no prose, no code fences:
 {
-  "critique": "your honest critique of the other strategists and defense of your own",
+  "critique": "a substantive 3-5 sentence critique — name the other agents (by number/role), point out a specific weakness or risk each understated, then defend or revise your own position with concrete reasoning",
   "revisedConfidence": <integer 0-100>,
   "revisedAction": "your final recommended USDC deployment after the debate",
-  "revisedSummary": "refined strategy"
+  "revisedSummary": "refined strategy in 1-2 sentences"
 }`
 
 /**
@@ -200,14 +203,15 @@ export async function runAgentDebate(params: {
     }
   }
 
-  if (onReasoning && reasoningContent) onReasoning(reasoningContent)
-
   // Parse the debate JSON — structure is slightly different from Round 1.
-  const raw = extractJson(content) as Record<string, unknown> | null
-  const critique = String(raw?.critique ?? reasoningContent.slice(0, 500))
-  const revisedConfidence = Math.min(100, Math.max(0, Number(raw?.revisedConfidence ?? myResult.confidence)))
-  const revisedAction = String(raw?.revisedAction ?? myResult.output.action)
-  const revisedSummary = String(raw?.revisedSummary ?? myResult.output.summary)
+  const rawJson = extractJson(content) as Record<string, unknown> | null
+  const critique = String(rawJson?.critique ?? reasoningContent.slice(0, 500))
+  const revisedConfidence = Math.max(0, Math.min(100, Math.round(Number(rawJson?.revisedConfidence ?? myResult.confidence))))
+  const revisedAction = String(rawJson?.revisedAction ?? myResult.output.action)
+  const revisedSummary = String(rawJson?.revisedSummary ?? myResult.output.summary)
+
+  // Stream the actual ARGUMENT to the debate panels (fast models give no reasoning_content).
+  if (onReasoning) onReasoning(reasoningContent || critique)
 
   return {
     agentId,

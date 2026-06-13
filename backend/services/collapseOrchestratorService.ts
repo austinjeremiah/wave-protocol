@@ -5,8 +5,10 @@ import {
   waitForTx,
   parseCollapseFromLogs,
   readCollapse,
+  getAgentSubmissionOnchain,
   type CollapseEvent,
 } from './enforcerService'
+import { logger } from '@/lib/logger'
 import type { AgentRunResult } from './veniceAgentService'
 
 export interface CollapseResult extends CollapseEvent {
@@ -35,21 +37,40 @@ export async function runCollapse(params: {
   let lastReceipt: Awaited<ReturnType<typeof waitForTx>> | undefined
 
   // Submit in agentId order; wait for each to mine so the EOA nonce advances cleanly.
+  // The FINAL submit auto-collapses (heaviest tx), so each submit is retried if it reverts —
+  // a single dropped/under-gassed collapse tx must not leave the session stuck at 2/3.
   const ordered = [...agentResults].sort((a, b) => a.agentId - b.agentId)
   for (const result of ordered) {
     const reasoningHash = hashReasoningContent(result.reasoningContent)
-    // Use revised confidence from debate if available — this is what hits the contract.
-    const confidence = revisedConfidences?.[result.agentId] ?? result.confidence
-    const txHash = await submitReasoningHash({
-      sessionId,
-      agentId: result.agentId,
-      reasoningHash,
-      confidence,
-    })
-    onHashSubmitted?.(result.agentId, txHash)
-    lastReceipt = await waitForTx(txHash)
-    onHashConfirmed?.(result.agentId, txHash)
-    hashTxHashes[result.agentId] = txHash
+    // Sanitize → guaranteed valid uint8 (0-100 integer); use revised confidence from the debate.
+    const raw = revisedConfidences?.[result.agentId] ?? result.confidence
+    const confidence = Math.max(0, Math.min(100, Math.round(Number(raw) || 0)))
+
+    let txHash: Hex | undefined
+    let receipt: Awaited<ReturnType<typeof waitForTx>> | undefined
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      // If a prior attempt already landed onchain (e.g. receipt looked reverted due to RPC lag),
+      // don't re-submit — that would revert with "Already submitted".
+      const onchain = await getAgentSubmissionOnchain(sessionId, result.agentId)
+      if (onchain.submitted) break
+
+      txHash = await submitReasoningHash({ sessionId, agentId: result.agentId, reasoningHash, confidence })
+      onHashSubmitted?.(result.agentId, txHash)
+      receipt = await waitForTx(txHash)
+      if (receipt.status === 'success') break
+
+      logger.warn(
+        { sessionId, agentId: result.agentId, attempt, txHash },
+        'submitReasoningHash reverted — retrying'
+      )
+      await new Promise((r) => setTimeout(r, 1500))
+    }
+
+    if (txHash) {
+      onHashConfirmed?.(result.agentId, txHash)
+      hashTxHashes[result.agentId] = txHash
+    }
+    if (receipt?.status === 'success') lastReceipt = receipt
   }
 
   // Collapse happened in the last submit tx — read it from that receipt.

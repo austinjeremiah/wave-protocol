@@ -142,6 +142,9 @@ export async function POST(req: NextRequest) {
       { role: 'user', content: body.userIntent },
     ],
     temperature: 0.7,
+    // Headroom for a richer multi-sentence reasoning/critique while staying fast (mistral is
+    // ~42 tok/s, so ~400 tokens ≈ 9s). The cap just prevents runaway generation.
+    max_tokens: 800,
   })
   const message = completion.choices[0]?.message
   const reasoning_content =

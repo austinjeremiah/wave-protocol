@@ -15,7 +15,7 @@ const DEMO_DEAD = '0x000000000000000000000000000000000000dEaD'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 120
+export const maxDuration = 300
 
 const TERMINAL_OR_RUNNING = ['AGENTS_RUNNING', 'AGENTS_DEBATING', 'HASHES_SUBMITTED', 'COLLAPSED', 'EXECUTING', 'EXECUTED']
 
@@ -38,6 +38,7 @@ function logEvent(e: Record<string, unknown>) {
       logger.info(
         `  ↕  agent ${e.agentId} confidence: ${e.from} → ${e.to}  (conviction bet: $${e.convictionBetUsdc})`
       )
+      if (e.critique) logger.info(`     💬 agent ${e.agentId}: "${String(e.critique).slice(0, 180)}"`)
       break
     case 'debate_complete':
       logger.info(`  ✓ DEBATE COMPLETE — revised confidences locked`)
@@ -265,17 +266,17 @@ export async function POST(
           fundingTx = await redeemWinnerDelegation({
             winnerContext: winnerCtx,
             recipient: vaultAddress as `0x${string}`,
-            amountUsdc: 0.05,
+            amountUsdc: session.budgetUsdc,
           })
           viaDelegation = true
         } catch (e) {
           logger.warn(
             `  ⚠ delegation redeem reverted (${(e as Error).message.split('\n')[0].slice(0, 90)}) — funding vault from treasury`
           )
-          fundingTx = await fundVaultFromTreasury({ amountUsdc: 0.05 })
+          fundingTx = await fundVaultFromTreasury({ amountUsdc: session.budgetUsdc })
         }
       } else {
-        fundingTx = await fundVaultFromTreasury({ amountUsdc: 0.05 })
+        fundingTx = await fundVaultFromTreasury({ amountUsdc: session.budgetUsdc })
       }
       await publish(sessionId, {
         type: 'execution_redeemed',

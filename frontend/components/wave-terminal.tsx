@@ -48,6 +48,8 @@ function toLines(events: WaveEvent[]): LogLine[] {
           text: `agent ${e.agentId} · ${e.from}→${e.to} conf · staked $${e.convictionBetUsdc.toFixed(4)}`,
           tone: "muted",
         })
+        if (e.critique)
+          lines.push({ id: `${id}-c`, icon: "💬", text: `agent ${e.agentId}: “${e.critique.slice(0, 150)}”`, tone: "accent" })
         break
       case "debate_complete":
         lines.push({ id, icon: "✓", text: `debate locked — revised confidences set`, tone: "muted" })

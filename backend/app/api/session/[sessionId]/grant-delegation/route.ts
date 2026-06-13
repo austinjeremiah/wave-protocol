@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import type { Hex } from 'viem'
+import { parseUnits, type Hex } from 'viem'
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
-import { redelegateAgentContexts, splitBudget } from '@/services/delegationService'
+import { redelegateAgentContexts } from '@/services/delegationService'
+import { USDC_DECIMALS } from '@/lib/constants'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,7 +35,11 @@ export async function POST(
   }
 
   try {
-    const budgets = splitBudget(session.budgetUsdc)
+    // Scope every agent's redelegation to the FULL deposit so the winner can deploy the whole
+    // amount the user set (the enforcer still ensures only the winner redeems). The ERC-7715 root
+    // cap (periodAmount) bounds total spend, so this can't exceed what the user granted.
+    const full = parseUnits(session.budgetUsdc.toString(), USDC_DECIMALS)
+    const budgets: [bigint, bigint, bigint] = [full, full, full]
     // Redelegate the ERC-7715 root context to each agent → per-agent redeemable contexts.
     const agentContexts = await redelegateAgentContexts({
       sessionId,
