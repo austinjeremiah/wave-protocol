@@ -2,7 +2,10 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { createSession, DEMO_USER_ADDRESS } from "@/lib/wave-api"
+import { createSession, DEMO_USER_ADDRESS, type CreateSessionResult } from "@/lib/wave-api"
+import { useWallet } from "@/lib/wallet"
+import { useGrantDelegation } from "@/hooks/use-grant-delegation"
+import { ConnectButton } from "@/components/connect-button"
 
 const SUGGESTIONS = [
   "Recommend one low-risk onchain strategy to grow idle stablecoins for a beginner",
@@ -10,31 +13,57 @@ const SUGGESTIONS = [
   "Decide whether to bridge or swap to move USDC from Base to Arbitrum cheaply",
 ]
 
+type Phase = "" | "creating" | "granting"
+
 export default function NewSessionPage() {
   const router = useRouter()
+  const wallet = useWallet()
+  const { grant } = useGrantDelegation()
+
   const [intent, setIntent] = useState("")
   const [budget, setBudget] = useState(5)
-  const [submitting, setSubmitting] = useState(false)
+  const [grantEnabled, setGrantEnabled] = useState(true)
+  const [phase, setPhase] = useState<Phase>("")
   const [error, setError] = useState<string | null>(null)
+  const [created, setCreated] = useState<CreateSessionResult | null>(null)
 
   const tooShort = intent.trim().length < 20
   const tooLong = intent.trim().length > 500
+  const busy = phase !== ""
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (tooShort || tooLong || submitting) return
-    setSubmitting(true)
+    if (tooShort || tooLong || busy) return
     setError(null)
     try {
-      const { sessionId } = await createSession({
+      setPhase("creating")
+      const session = created ?? (await createSession({
         userIntent: intent.trim(),
         budgetUsdc: budget,
-        userAddress: DEMO_USER_ADDRESS,
-      })
-      router.push(`/session/${sessionId}`)
+        userAddress: wallet.address ?? DEMO_USER_ADDRESS,
+      }))
+      setCreated(session)
+
+      if (wallet.address && grantEnabled) {
+        setPhase("granting")
+        try {
+          await grant({
+            sessionId: session.sessionId,
+            account: wallet.address,
+            delegateAddress: session.agentAddresses[0] as `0x${string}`,
+            budgetUsdc: budget,
+          })
+        } catch (err) {
+          // Grant is best-effort — the collapse still runs without it.
+          setError(`Delegation skipped: ${(err as Error).message}`)
+          setPhase("")
+          return
+        }
+      }
+      router.push(`/session/${session.sessionId}`)
     } catch (err) {
       setError((err as Error).message)
-      setSubmitting(false)
+      setPhase("")
     }
   }
 
@@ -43,12 +72,20 @@ export default function NewSessionPage() {
       <div className="grid-bg fixed inset-0 opacity-30" aria-hidden />
 
       <div className="relative z-10 w-full max-w-2xl">
-        <a
-          href="/"
-          className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
-        >
-          ← Wave Protocol
-        </a>
+        <div className="flex items-center justify-between">
+          <a
+            href="/"
+            className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+          >
+            ← Wave Protocol
+          </a>
+          <ConnectButton
+            address={wallet.address}
+            connect={() => wallet.connect().catch((e) => setError((e as Error).message))}
+            connecting={wallet.connecting}
+            hasWallet={wallet.hasWallet}
+          />
+        </div>
 
         <div className="mt-8 mb-12">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">New Session</span>
@@ -65,14 +102,8 @@ export default function NewSessionPage() {
           {/* Intent */}
           <div>
             <label className="flex items-baseline justify-between mb-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                Intent
-              </span>
-              <span
-                className={`font-mono text-[10px] ${
-                  tooLong ? "text-destructive" : "text-muted-foreground/50"
-                }`}
-              >
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Intent</span>
+              <span className={`font-mono text-[10px] ${tooLong ? "text-destructive" : "text-muted-foreground/50"}`}>
                 {intent.trim().length}/500
               </span>
             </label>
@@ -100,9 +131,7 @@ export default function NewSessionPage() {
           {/* Budget */}
           <div>
             <label className="flex items-baseline justify-between mb-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-                Budget
-              </span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Budget</span>
               <span className="font-mono text-xs text-accent">{budget.toFixed(0)} USDC</span>
             </label>
             <input
@@ -119,21 +148,49 @@ export default function NewSessionPage() {
             </p>
           </div>
 
-          {error && (
-            <p className="font-mono text-xs text-destructive border border-destructive/40 px-4 py-3">{error}</p>
+          {/* ERC-7715 grant toggle (only when a wallet is connected) */}
+          {wallet.address && (
+            <label className="flex items-start gap-3 border border-border/60 px-4 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={grantEnabled}
+                onChange={(e) => setGrantEnabled(e.target.checked)}
+                className="mt-0.5 accent-[oklch(0.7_0.2_45)]"
+              />
+              <span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground">
+                  Delegate USDC budget (ERC-7715)
+                </span>
+                <span className="mt-1 block font-mono text-[10px] text-muted-foreground/70 leading-relaxed">
+                  Sign a spending cap to Agent A in MetaMask Flask. The winning agent can then spend within it.
+                </span>
+              </span>
+            </label>
           )}
 
-          <button
-            type="submit"
-            disabled={tooShort || tooLong || submitting}
-            className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-foreground/20 disabled:hover:text-foreground"
-          >
-            {submitting ? "Initializing onchain…" : "Run a Collapse"}
-            <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-          </button>
-          {tooShort && intent.length > 0 && (
-            <span className="ml-4 font-mono text-[10px] text-muted-foreground/60">min 20 characters</span>
-          )}
+          {error && <p className="font-mono text-xs text-destructive border border-destructive/40 px-4 py-3">{error}</p>}
+
+          <div className="flex items-center gap-4">
+            <button
+              type="submit"
+              disabled={tooShort || tooLong || busy}
+              className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-foreground/20 disabled:hover:text-foreground"
+            >
+              {phase === "creating" ? "Initializing onchain…" : phase === "granting" ? "Awaiting signature…" : "Run a Collapse"}
+              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+            </button>
+
+            {/* If the grant failed, let the demo proceed without it */}
+            {created && error && (
+              <button
+                type="button"
+                onClick={() => router.push(`/session/${created.sessionId}`)}
+                className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors"
+              >
+                Skip & continue →
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </main>

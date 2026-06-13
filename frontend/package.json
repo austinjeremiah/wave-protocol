@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "wave-protocol-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,6 +11,7 @@
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
     "@hookform/resolvers": "^3.10.0",
+    "@metamask/smart-accounts-kit": "^1.6.0",
     "@nuxt/kit": "latest",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
@@ -63,6 +64,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
+    "viem": "^2.31.4",
     "zod": "3.25.76"
   },
   "devDependencies": {
