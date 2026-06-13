@@ -106,6 +106,12 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
               ← Wave Protocol
             </a>
             <a
+              href="/stats"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              Stats ↗
+            </a>
+            <a
               href="/explore"
               className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
             >

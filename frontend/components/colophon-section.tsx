@@ -143,6 +143,14 @@ export function ColophonSection() {
             </li>
             <li>
               <a
+                href="/stats"
+                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+              >
+                Protocol Stats →
+              </a>
+            </li>
+            <li>
+              <a
                 href="/explore"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >
