@@ -1,4 +1,4 @@
-import { createPublicClient, createWalletClient, http } from 'viem'
+import { createPublicClient, createWalletClient, http, nonceManager, publicActions } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { baseSepolia } from 'viem/chains'
 import type { Hex } from 'viem'
@@ -26,17 +26,21 @@ export function getBackendAccount() {
     if (!key || !key.startsWith('0x')) {
       throw new Error('DEPLOYER_PRIVATE_KEY is not set (the backend onchain signer)')
     }
-    _backendAccount = privateKeyToAccount(key)
+    // nonceManager lets concurrent txs (e.g. 3 parallel x402 settlements) get
+    // sequential nonces instead of colliding.
+    _backendAccount = privateKeyToAccount(key, { nonceManager })
   }
   return _backendAccount
 }
 
 function buildBackendWalletClient() {
+  // Extend with publicActions so x402's settle() (which re-verifies signatures via
+  // verifyTypedData) works on this same client. writeContract etc. remain available.
   return createWalletClient({
     account: getBackendAccount(),
     chain: baseSepolia,
     transport: http(RPC_URL),
-  })
+  }).extend(publicActions)
 }
 
 let _backendWalletClient: ReturnType<typeof buildBackendWalletClient> | undefined

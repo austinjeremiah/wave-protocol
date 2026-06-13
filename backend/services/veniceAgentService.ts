@@ -1,20 +1,37 @@
-import OpenAI from 'openai'
+import { wrapFetchWithPayment, createSigner } from 'x402-fetch'
+import type { Hex } from 'viem'
 import { AgentOutputSchema, type AgentOutput } from '@/schemas/agentOutputSchema'
-import { VENICE_API_URL, VENICE_MODEL, AGENT_ROLES } from '@/lib/constants'
+import { AGENT_ROLES } from '@/lib/constants'
 
 /**
- * Venice AI via its OpenAI-compatible API (Bearer key auth). Reasoning ("thinking")
- * models return their chain-of-thought in `choices[0].message.reasoning_content`,
- * which we hash onchain. The final structured JSON answer is in `message.content`.
+ * Each agent pays a small USDC toll (x402, Base Sepolia) per inference to the gateway at
+ * /api/x402/inference, which runs Venice behind the paywall. The agent wallet signs the
+ * payment; the gateway settles it onchain. This is the "agents pay for inference" flow.
  */
-let _client: OpenAI | null = null
-function getClient(): OpenAI {
-  if (!_client) {
-    const apiKey = process.env.VENICE_API_KEY
-    if (!apiKey) throw new Error('VENICE_API_KEY is not set (the inference path)')
-    _client = new OpenAI({ apiKey, baseURL: VENICE_API_URL })
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'
+const INFERENCE_URL = `${APP_URL}/api/x402/inference`
+
+const AGENT_KEYS = [
+  process.env.AGENT_A_PRIVATE_KEY,
+  process.env.AGENT_B_PRIVATE_KEY,
+  process.env.AGENT_C_PRIVATE_KEY,
+] as (Hex | undefined)[]
+
+// One x402-paying fetch per agent (the signer is created async, so cache the promise).
+const paidFetchers: Record<number, Promise<ReturnType<typeof wrapFetchWithPayment>>> = {}
+function getPaidFetch(agentId: number): Promise<ReturnType<typeof wrapFetchWithPayment>> {
+  if (!paidFetchers[agentId]) {
+    const key = AGENT_KEYS[agentId]
+    if (!key || !key.startsWith('0x')) {
+      return Promise.reject(
+        new Error(`AGENT_${String.fromCharCode(65 + agentId)}_PRIVATE_KEY is not set`)
+      )
+    }
+    paidFetchers[agentId] = createSigner('base-sepolia', key).then((signer) =>
+      wrapFetchWithPayment(fetch, signer)
+    )
   }
-  return _client
+  return paidFetchers[agentId]
 }
 
 const SYSTEM_PROMPT = (role: string) =>
@@ -42,22 +59,22 @@ export async function runAgent(params: {
 }): Promise<AgentRunResult> {
   const { agentId, userIntent, onReasoning } = params
   const role = AGENT_ROLES[agentId] ?? `Agent ${agentId}`
+  const paidFetch = await getPaidFetch(agentId)
 
-  const res = await getClient().chat.completions.create({
-    model: VENICE_MODEL,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT(role) },
-      { role: 'user', content: userIntent },
-    ],
-    temperature: 0.7,
+  const res = await paidFetch(INFERENCE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemPrompt: SYSTEM_PROMPT(role), userIntent }),
   })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`x402 inference failed for agent ${agentId}: ${res.status} ${text.slice(0, 200)}`)
+  }
 
-  const message = res.choices[0]?.message
-  let reasoningContent =
-    (message as { reasoning_content?: string } | undefined)?.reasoning_content ?? ''
-  let content = message?.content ?? ''
+  const data = (await res.json()) as { content?: string; reasoning_content?: string }
+  let reasoningContent = data.reasoning_content ?? ''
+  let content = data.content ?? ''
 
-  // Some models inline their thinking as <think>…</think> in content instead.
   if (!reasoningContent) {
     const think = content.match(/<think>([\s\S]*?)<\/think>/)
     if (think) {
