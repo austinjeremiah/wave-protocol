@@ -84,6 +84,7 @@ export default function NewSessionPage() {
             connect={() => wallet.connect().catch((e) => setError((e as Error).message))}
             connecting={wallet.connecting}
             hasWallet={wallet.hasWallet}
+            disconnect={wallet.disconnect}
           />
         </div>
 
