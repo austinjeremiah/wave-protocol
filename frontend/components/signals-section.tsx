@@ -9,29 +9,29 @@ gsap.registerPlugin(ScrollTrigger)
 
 const signals = [
   {
-    date: "2025.06.10",
-    title: "Signal Field",
-    note: "New interface paradigm for ambient computing environments.",
+    date: "INPUT",
+    title: "Intent",
+    note: "You submit one high-level intent and a USDC budget. That's the entire input.",
   },
   {
-    date: "2025.05.28",
-    title: "Silent Agent",
-    note: "Orchestration layer for autonomous design systems.",
+    date: "VENICE",
+    title: "Superposition",
+    note: "Three specialist agents — Research, Analysis, Execution — explore the intent in parallel via Venice AI.",
   },
   {
-    date: "2025.05.15",
-    title: "Noir Grid",
-    note: "Typographic system for editorial interfaces.",
+    date: "x402",
+    title: "Pay-Per-Call",
+    note: "Each agent pays for its own inference with x402 — USDC settled onchain on Base Sepolia.",
   },
   {
-    date: "2025.04.30",
-    title: "Project Lattice",
-    note: "Structural framework for adaptive layouts.",
+    date: "ONCHAIN",
+    title: "Commit",
+    note: "Every agent's private reasoning is keccak-hashed and committed to the enforcer contract.",
   },
   {
-    date: "2025.04.12",
-    title: "Echo Chamber",
-    note: "Audio-visual synthesis in browser environments.",
+    date: "ERC-7710",
+    title: "Collapse",
+    note: "A custom caveat enforcer reads all hashes and collapses to the highest-confidence agent.",
   },
 ]
 
@@ -135,8 +135,8 @@ export function SignalsSection() {
 
       {/* Section header */}
       <div ref={headerRef} className="mb-16 pr-6 md:pr-12">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">01 / Signals</span>
-        <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">WHAT&apos;S NEW</h2>
+        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">01 / Flow</span>
+        <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">HOW IT WORKS</h2>
       </div>
 
       {/* Horizontal scroll container */}

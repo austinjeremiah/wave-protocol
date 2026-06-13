@@ -16,37 +16,37 @@ export function PrinciplesSection() {
     {
       number: "01",
       titleParts: [
-        { text: "INTERFACE", highlight: true },
-        { text: " MINIMALISM", highlight: false },
+        { text: "PARALLEL ", highlight: false },
+        { text: "SUPERPOSITION", highlight: true },
       ],
-      description: "Reduce until only the essential remains. Every element earns its place.",
+      description: "Three agents explore the same intent simultaneously. Nothing collapses until all have reasoned.",
       align: "left",
     },
     {
       number: "02",
       titleParts: [
-        { text: "SYSTEMS", highlight: true },
-        { text: " OVER SCREENS", highlight: false },
+        { text: "ONCHAIN ", highlight: false },
+        { text: "CONSENSUS", highlight: true },
       ],
-      description: "Design behaviors, not just layouts. Build logic that scales.",
+      description: "We don't pick the winner — a Solidity enforcer reads every reasoning hash and selects the highest confidence.",
       align: "right",
     },
     {
       number: "03",
       titleParts: [
-        { text: "CONTROLLED ", highlight: false },
-        { text: "TENSION", highlight: true },
+        { text: "PAY ", highlight: false },
+        { text: "PER-INFERENCE", highlight: true },
       ],
-      description: "Balance between restraint and expression. Confidence without excess.",
+      description: "Every agent funds its own thinking via x402. Compute is metered, onchain, and permissionless.",
       align: "left",
     },
     {
       number: "04",
       titleParts: [
-        { text: "SIGNAL ", highlight: false },
-        { text: "CLARITY", highlight: true },
+        { text: "DELEGATED ", highlight: false },
+        { text: "AUTHORITY", highlight: true },
       ],
-      description: "Communication that cuts through noise. Precision in every interaction.",
+      description: "The user grants scoped USDC budgets via ERC-7710. Losing agents are gated; only the winner can act.",
       align: "right",
     },
   ]
@@ -94,7 +94,7 @@ export function PrinciplesSection() {
       {/* Section header */}
       <div ref={headerRef} className="mb-24">
         <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">03 / Principles</span>
-        <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">HOW WE WORK</h2>
+        <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">WHY THIS WORKS</h2>
       </div>
 
       {/* Staggered principles */}

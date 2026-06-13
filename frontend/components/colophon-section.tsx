@@ -81,73 +81,85 @@ export function ColophonSection() {
 
       {/* Multi-column layout */}
       <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 md:gap-12">
-        {/* Design */}
+        {/* Contract */}
         <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Design</h4>
-          <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Signal Studio</li>
-            <li className="font-mono text-xs text-foreground/80">Interface Lab</li>
-          </ul>
-        </div>
-
-        {/* Stack */}
-        <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Stack</h4>
-          <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Next.js</li>
-            <li className="font-mono text-xs text-foreground/80">Tailwind CSS</li>
-            <li className="font-mono text-xs text-foreground/80">Vercel</li>
-          </ul>
-        </div>
-
-        {/* Typography */}
-        <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Typography</h4>
-          <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Bebas Neue</li>
-            <li className="font-mono text-xs text-foreground/80">Inter</li>
-            <li className="font-mono text-xs text-foreground/80">Geist Mono</li>
-          </ul>
-        </div>
-
-        {/* Location */}
-        <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Location</h4>
-          <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Remote</li>
-            <li className="font-mono text-xs text-foreground/80">Everywhere</li>
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Contact</h4>
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Contract</h4>
           <ul className="space-y-2">
             <li>
               <a
-                href="mailto:hello@signal.studio"
+                href="https://sepolia.basescan.org/address/0x3ec6F2c470e57f487709b153f77c02851fe864C5"
+                target="_blank"
+                rel="noreferrer"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >
-                Email
+                Enforcer ↗
+              </a>
+            </li>
+            <li className="font-mono text-xs text-muted-foreground/60">0x3ec6…64C5</li>
+          </ul>
+        </div>
+
+        {/* Onchain */}
+        <div className="col-span-1">
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Onchain</h4>
+          <ul className="space-y-2">
+            <li className="font-mono text-xs text-foreground/80">Base Sepolia</li>
+            <li className="font-mono text-xs text-foreground/80">USDC · x402</li>
+            <li className="font-mono text-xs text-foreground/80">ERC-7710</li>
+          </ul>
+        </div>
+
+        {/* Agents */}
+        <div className="col-span-1">
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Agents</h4>
+          <ul className="space-y-2">
+            <li className="font-mono text-xs text-foreground/80">Venice AI</li>
+            <li className="font-mono text-xs text-foreground/80">Reasoning models</li>
+            <li className="font-mono text-xs text-foreground/80">3 in parallel</li>
+          </ul>
+        </div>
+
+        {/* Tracks */}
+        <div className="col-span-1">
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Tracks</h4>
+          <ul className="space-y-2">
+            <li className="font-mono text-xs text-foreground/80">x402 + ERC-7710</li>
+            <li className="font-mono text-xs text-foreground/80">Best Agent</li>
+            <li className="font-mono text-xs text-foreground/80">A2A Coordination</li>
+          </ul>
+        </div>
+
+        {/* Links */}
+        <div className="col-span-1">
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Links</h4>
+          <ul className="space-y-2">
+            <li>
+              <a
+                href="/session/new"
+                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+              >
+                Run Demo →
               </a>
             </li>
             <li>
               <a
-                href="#"
+                href="https://github.com"
+                target="_blank"
+                rel="noreferrer"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >
-                Twitter/X
+                GitHub ↗
               </a>
             </li>
           </ul>
         </div>
 
-        {/* Year */}
+        {/* Chain */}
         <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Year</h4>
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Chain</h4>
           <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">2025</li>
-            <li className="font-mono text-xs text-foreground/80">Ongoing</li>
+            <li className="font-mono text-xs text-foreground/80">Base Sepolia</li>
+            <li className="font-mono text-xs text-foreground/80">id 84532</li>
           </ul>
         </div>
       </div>
@@ -158,9 +170,9 @@ export function ColophonSection() {
         className="mt-24 pt-8 border-t border-border/20 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
         <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-          © 2025 Signal. All rights reserved.
+          © 2025 WaveAgent. Built on Base Sepolia.
         </p>
-        <p className="font-mono text-[10px] text-muted-foreground">Designed with intention. Built with precision.</p>
+        <p className="font-mono text-[10px] text-muted-foreground">Three agents. One intent. Onchain collapse.</p>
       </div>
     </section>
   )

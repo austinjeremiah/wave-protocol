@@ -78,6 +78,9 @@ export async function GET(
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
+      // SSE is cross-origin (frontend :3000 → backend :3001). Set ACAO here; the CORS
+      // middleware deliberately skips /stream to avoid a duplicate header.
+      'Access-Control-Allow-Origin': process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000',
     },
   })
 }

@@ -9,39 +9,40 @@ gsap.registerPlugin(ScrollTrigger)
 
 const experiments = [
   {
-    title: "Project Lattice",
-    medium: "Interface Study",
-    description: "Structural framework for adaptive layouts in dynamic content systems.",
+    title: "Collapse Enforcer",
+    medium: "ERC-7710 / Solidity",
+    description:
+      "Our custom caveat enforcer on Base Sepolia. It reads every agent's reasoning hash, picks the highest-confidence winner, and gates which delegation can be redeemed.",
     span: "col-span-2 row-span-2",
   },
   {
-    title: "Signal Field",
-    medium: "Agent Orchestration",
-    description: "Autonomous coordination layer for multi-agent environments.",
+    title: "Venice AI",
+    medium: "Inference",
+    description: "Three reasoning agents think in parallel; chain-of-thought hashed onchain.",
     span: "col-span-1 row-span-1",
   },
   {
-    title: "Silent Agent",
-    medium: "Visual System",
-    description: "Non-intrusive interface patterns for ambient computing.",
+    title: "x402",
+    medium: "Payments",
+    description: "Agents pay per inference in USDC, settled onchain via EIP-3009. No API keys.",
     span: "col-span-1 row-span-2",
   },
   {
-    title: "Noir Grid",
-    medium: "Typography",
-    description: "High-contrast typographic system for editorial interfaces.",
+    title: "Smart Accounts",
+    medium: "MetaMask",
+    description: "ERC-7710 delegation chain — the user grants scoped USDC budgets to each agent.",
     span: "col-span-1 row-span-1",
   },
   {
-    title: "Echo Chamber",
-    medium: "Audio-Visual",
-    description: "Generative soundscapes mapped to interface interactions.",
+    title: "A2A Coordination",
+    medium: "Consensus",
+    description: "Agent-to-agent delegation plus the onchain collapse as the agreement mechanism.",
     span: "col-span-2 row-span-1",
   },
   {
-    title: "Void Protocol",
-    medium: "Experimental",
-    description: "Negative space as primary interaction medium.",
+    title: "Base Sepolia",
+    medium: "Chain",
+    description: "Everything is real and onchain — on testnet, at zero real cost.",
     span: "col-span-1 row-span-1",
   },
 ]
@@ -98,11 +99,11 @@ export function WorkSection() {
       {/* Section header */}
       <div ref={headerRef} className="mb-16 flex items-end justify-between">
         <div>
-          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">02 / Experiments</span>
-          <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">SELECTED WORK</h2>
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">02 / Stack</span>
+          <h2 className="mt-4 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight">THE STACK</h2>
         </div>
         <p className="hidden md:block max-w-xs font-mono text-xs text-muted-foreground text-right leading-relaxed">
-          Studies across interface design, agent systems, and visual computation.
+          Every sponsor tool is load-bearing — with a custom contract at the center.
         </p>
       </div>
 
