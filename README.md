@@ -34,7 +34,8 @@ backend/contracts/  Foundry                       (VeniceCollapseEnforcer.sol)
 ```bash
 cd backend
 pnpm install
-cp .env.example .env.local        # fill in: DATABASE_URL, REDIS_URL, DEPLOYER_PRIVATE_KEY,
+[ -f .env.local ] || cp .env.example .env.local   # ⚠️ only if missing — don't overwrite a filled one!
+                                  # fill in: DATABASE_URL, REDIS_URL, DEPLOYER_PRIVATE_KEY,
                                   # AGENT_A/B/C_PRIVATE_KEY, VENICE_API_KEY, VENICE_COLLAPSE_ENFORCER_ADDRESS
 pnpm db:push                      # create tables in Neon
 pnpm dev                          # → http://localhost:3001
