@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { basescanTx } from "@/lib/wave-api"
+import { AGENT_WAVE_COLORS } from "@/components/wave-field"
 
 export interface AgentView {
   agentId: number
@@ -34,8 +35,8 @@ export function AgentOrb({
       animate={{ opacity: dimmed ? 0.35 : 1, scale: collapsed ? (isWinner ? 1.02 : 0.97) : 1 }}
       transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
       className={cn(
-        "relative flex flex-col min-h-[440px] bg-card border p-6 overflow-hidden",
-        collapsed && isWinner ? "border-accent" : "border-border/50",
+        "glass relative flex flex-col min-h-[440px] p-6 overflow-hidden",
+        collapsed && isWinner && "!border-accent shadow-[0_0_32px_oklch(0.7_0.2_45/0.18)]",
         dimmed && "grayscale",
       )}
     >
@@ -50,7 +51,10 @@ export function AgentOrb({
 
       {/* header */}
       <div className="relative z-10 flex items-baseline justify-between mb-6">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.3em]"
+          style={{ color: AGENT_WAVE_COLORS[agent.agentId] ?? "var(--accent)" }}
+        >
           {String(agent.agentId + 1).padStart(2, "0")} / {agent.role}
         </span>
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
@@ -107,7 +111,7 @@ export function AgentOrb({
 
       {/* reasoning stream (clamped) */}
       <div className="relative z-10 flex-1 overflow-hidden">
-        <p className="font-mono text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap line-clamp-[8]">
+        <p className="font-mono text-[11px] leading-relaxed text-foreground/70 whitespace-pre-wrap line-clamp-[8]">
           {agent.reasoning}
         </p>
       </div>

@@ -8,12 +8,15 @@ export interface WaveFieldAgent {
   status: "idle" | "thinking" | "debating" | "done"
 }
 
-// Orange-family accent per agent (matches the design's oklch(0.7 0.2 45)).
+// One distinct hue per lens so each wave is identifiable: Yield · Risk · Liquidity.
 const COLORS: [number, number, number][] = [
-  [249, 115, 22], // orange-500
-  [251, 146, 60], // orange-400
-  [253, 186, 116], // orange-300
+  [16, 185, 129], // emerald-500 — Yield
+  [251, 146, 60], // orange-400  — Risk
+  [56, 189, 248], // sky-400     — Liquidity
 ]
+
+/** CSS rgb() strings for the same per-lens palette — reused by the legend/labels. */
+export const AGENT_WAVE_COLORS = ["rgb(16,185,129)", "rgb(251,146,60)", "rgb(56,189,248)"]
 const FREQ = [0.011, 0.016, 0.022]
 const SPEED = [1.0, 1.35, 0.75]
 const PHASE = [0, 1.8, 3.4]
@@ -137,11 +140,12 @@ export function WaveField({
       }
 
       // The bright SUPERPOSITION (sum of all three) — the interference, fades out as it collapses.
+      // Kept white so it reads as the *combined* signal, distinct from the colored components.
       if (collapseT < 0.6) {
-        ctx.strokeStyle = `rgba(249,115,22,${0.9 * (1 - collapseT)})`
+        ctx.strokeStyle = `rgba(245,245,245,${0.85 * (1 - collapseT)})`
         ctx.lineWidth = 2
         ctx.shadowBlur = 18
-        ctx.shadowColor = "rgba(249,115,22,0.8)"
+        ctx.shadowColor = "rgba(245,245,245,0.7)"
         ctx.beginPath()
         for (let x = 0; x <= w; x += 2) {
           const env = Math.sin((x / w) * Math.PI)
@@ -177,10 +181,11 @@ export function WaveField({
         ctx.restore()
       }
 
-      // Collapse shockwave ring (orange).
+      // Collapse shockwave ring — in the winning lens's color.
       if (shock >= 0 && shock < w) {
         const al = Math.max(0, 1 - shock / w)
-        ctx.strokeStyle = `rgba(249,115,22,${al * 0.7})`
+        const [wr, wg, wb] = winnerId != null ? COLORS[winnerId] : [245, 245, 245]
+        ctx.strokeStyle = `rgba(${wr},${wg},${wb},${al * 0.75})`
         ctx.lineWidth = 2
         ctx.beginPath()
         ctx.arc(w / 2, midY, shock, 0, Math.PI * 2)

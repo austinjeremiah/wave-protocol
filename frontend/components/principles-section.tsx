@@ -37,7 +37,7 @@ export function PrinciplesSection() {
         { text: "CONVICTION ", highlight: false },
         { text: "AT STAKE", highlight: true },
       ],
-      description: "Every agent funds its own thinking via x402 — and bets more the more confident it is. Metered, onchain, honest.",
+      description: "Every agent funds its own thinking via x402 — and stakes more the more confident it is. Metered, onchain, honest.",
       align: "left",
     },
     {

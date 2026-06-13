@@ -11,10 +11,11 @@ import {
   type SessionRecord,
 } from "@/lib/wave-api"
 import { WaveCollapse } from "@/components/wave-collapse"
-import { WaveField } from "@/components/wave-field"
+import { WaveField, AGENT_WAVE_COLORS } from "@/components/wave-field"
 import { DebateFloor } from "@/components/debate-floor"
 import { WaveTerminal } from "@/components/wave-terminal"
 import type { AgentView } from "@/components/agent-orb"
+import { cn } from "@/lib/utils"
 
 type Mode = "loading" | "live" | "replay" | "error"
 type Phase = "connecting" | "reasoning" | "debating" | "collapsed" | "executing" | "error"
@@ -92,6 +93,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
   return (
     <main className="relative min-h-screen px-6 py-12 md:px-12">
       <div className="grid-bg fixed inset-0 opacity-20" aria-hidden />
+      <div className="glow-ambient" aria-hidden />
 
       <div className="relative z-10 mx-auto max-w-7xl lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
         <div className="min-w-0">
@@ -111,7 +113,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
                 {collapsed ? "WAVE COLLAPSED" : phase === "debating" ? "DEBATE ROUND" : "SUPERPOSITION"}
               </h1>
             </div>
-            <code className="font-mono text-[10px] text-muted-foreground/50">
+            <code className="font-mono text-[10px] text-muted-foreground/70">
               {sessionId.slice(0, 10)}…{sessionId.slice(-6)}
             </code>
           </div>
@@ -123,14 +125,38 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
         </header>
 
         {(runError || errored) && (
-          <p className="mb-8 border border-destructive/40 px-4 py-3 font-mono text-xs text-destructive">
+          <p className="mb-8 rounded-xl border border-destructive/40 px-4 py-3 font-mono text-xs text-destructive">
             {runError ?? errored}
           </p>
         )}
 
         {/* Hero: the live wave-interference field — superposition collapsing to the winner. */}
-        <div className="relative mb-8 h-[42vh] min-h-[280px] overflow-hidden border border-border/40 bg-[oklch(0.06_0_0)]">
+        <div className="glass relative mb-8 h-[42vh] min-h-[280px] overflow-hidden">
           <WaveField agents={agents} collapsed={collapsed} winnerId={winnerId} supplied={supplied} />
+
+          {/* Legend — which colored wave is which lens, + how to read the field. */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-wrap items-center gap-x-5 gap-y-1.5 p-4">
+            {agents.map((a) => {
+              const isWin = collapsed && winnerId === a.agentId
+              return (
+                <span
+                  key={a.agentId}
+                  className={cn(
+                    "flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest transition-opacity duration-500",
+                    collapsed && !isWin ? "opacity-30 text-muted-foreground" : "text-foreground/85",
+                  )}
+                >
+                  <span className="h-1 w-5 rounded-full" style={{ background: AGENT_WAVE_COLORS[a.agentId] }} />
+                  {a.role}
+                  {a.confidence != null && <span className="text-foreground/55">{a.confidence}</span>}
+                </span>
+              )
+            })}
+            <span className="ml-auto hidden font-mono text-[9px] tracking-wide text-foreground/45 lg:block">
+              amplitude = conviction · the 3 waves superpose, then collapse to the winner
+            </span>
+          </div>
+
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between p-4">
             <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
               {collapsed
@@ -140,11 +166,11 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
                   : "superposition · 3 waves interfering"}
             </span>
             {!collapsed ? (
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/70">
                 {phase === "debating" ? "agents critiquing peers…" : phase === "reasoning" ? "agents reasoning…" : connected ? "linked" : "linking…"}
               </span>
             ) : (
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/65">
                 {winner?.winnerConfidence ?? winnerAgent?.confidence} conf · onchain
               </span>
             )}
@@ -190,7 +216,7 @@ function ResultCard({
   recipient: string | null
 }) {
   return (
-    <section className="mt-10 border border-accent/40 bg-card p-8">
+    <section className="glass mt-10 !border-accent/40 p-8">
       <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Result / Winner</span>
       <h2 className="mt-3 font-[var(--font-bebas)] text-4xl md:text-5xl tracking-tight">
         {String(winnerAgent.agentId + 1).padStart(2, "0")} · {winnerAgent.role}
@@ -241,7 +267,7 @@ function ResultCard({
 
       {/* Your Compound V3 position — the user owns the yield */}
       {supplyTxHash && (
-        <div className="mt-6 border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
+        <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-400">
             Your Position · Compound V3
           </span>

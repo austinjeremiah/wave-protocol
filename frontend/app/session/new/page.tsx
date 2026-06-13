@@ -70,6 +70,7 @@ export default function NewSessionPage() {
   return (
     <main className="relative min-h-screen flex items-center justify-center px-6 py-20">
       <div className="grid-bg fixed inset-0 opacity-30" aria-hidden />
+      <div className="glow-ambient" aria-hidden />
 
       <div className="relative z-10 w-full max-w-2xl">
         <div className="flex items-center justify-between">
@@ -113,7 +114,7 @@ export default function NewSessionPage() {
               onChange={(e) => setIntent(e.target.value)}
               rows={4}
               placeholder="e.g. grow my idle USDC safely, low risk, keep it liquid…"
-              className="w-full resize-none bg-card border border-border px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent transition-colors"
+              className="glass w-full resize-none px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:!border-accent transition-colors"
             />
             <div className="mt-3 flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
@@ -121,7 +122,7 @@ export default function NewSessionPage() {
                   key={s}
                   type="button"
                   onClick={() => setIntent(s)}
-                  className="font-mono text-[10px] text-muted-foreground/70 border border-border/60 px-2 py-1 hover:border-accent hover:text-accent transition-colors text-left"
+                  className="font-mono text-[10px] text-muted-foreground/70 border border-border/60 rounded-lg px-2.5 py-1.5 hover:border-accent hover:text-accent transition-colors text-left"
                 >
                   {s.length > 42 ? s.slice(0, 42) + "…" : s}
                 </button>
@@ -151,7 +152,7 @@ export default function NewSessionPage() {
 
           {/* ERC-7715 grant toggle (only when a wallet is connected) */}
           {wallet.address && (
-            <label className="flex items-start gap-3 border border-border/60 px-4 py-3 cursor-pointer">
+            <label className="glass glass-hover flex items-start gap-3 px-4 py-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={grantEnabled}
@@ -170,13 +171,13 @@ export default function NewSessionPage() {
             </label>
           )}
 
-          {error && <p className="font-mono text-xs text-destructive border border-destructive/40 px-4 py-3">{error}</p>}
+          {error && <p className="font-mono text-xs text-destructive border border-destructive/40 rounded-xl px-4 py-3">{error}</p>}
 
           <div className="flex items-center gap-4">
             <button
               type="submit"
               disabled={tooShort || tooLong || busy}
-              className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-foreground/20 disabled:hover:text-foreground"
+              className="group glass glass-hover inline-flex items-center gap-3 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-foreground"
             >
               {phase === "creating" ? "Initializing onchain…" : phase === "granting" ? "Awaiting signature…" : "Deploy USDC"}
               <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>

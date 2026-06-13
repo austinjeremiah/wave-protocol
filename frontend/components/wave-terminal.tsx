@@ -15,7 +15,7 @@ interface LogLine {
 }
 
 const TONE: Record<Tone, string> = {
-  muted: "text-muted-foreground/70",
+  muted: "text-foreground/75",
   accent: "text-accent",
   win: "text-accent font-semibold",
   exec: "text-emerald-400",
@@ -108,7 +108,7 @@ export function WaveTerminal({
   }, [lines.length])
 
   return (
-    <div className="flex h-full flex-col border border-border/50 bg-[oklch(0.06_0_0)]">
+    <div className="glass flex h-full flex-col overflow-hidden">
       {/* terminal header */}
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
         <div className="flex items-center gap-2">
@@ -124,9 +124,9 @@ export function WaveTerminal({
       </div>
 
       {/* log body */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed">
         {lines.length === 0 ? (
-          <p className="text-muted-foreground/40">
+          <p className="text-muted-foreground/60">
             {connected ? "› awaiting agents…" : "› connecting…"}
             <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-accent/60 align-middle" />
           </p>
@@ -142,7 +142,7 @@ export function WaveTerminal({
                       href={basescanTx(l.txHash)}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-2 inline-flex items-center gap-0.5 border border-current/30 px-1.5 py-0.5 text-[9px] uppercase tracking-widest opacity-80 transition-opacity hover:opacity-100 hover:underline"
+                      className="ml-2 inline-flex items-center gap-0.5 rounded-md border border-current/50 px-1.5 py-0.5 text-[9px] uppercase tracking-widest opacity-90 transition-opacity hover:opacity-100 hover:underline"
                     >
                       explorer ↗
                     </a>

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import type { AgentView } from "@/components/agent-orb"
+import { AGENT_WAVE_COLORS } from "@/components/wave-field"
 import { cn } from "@/lib/utils"
 
 /**
@@ -20,7 +21,7 @@ export function DebateFloor({ agents, active }: { agents: AgentView[]; active: b
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="mb-8 border border-orange-400/30 bg-[oklch(0.07_0_0)] p-6 md:p-8"
+      className="glass mb-8 !border-orange-400/30 p-6 md:p-8"
     >
       <div className="mb-5 flex items-center justify-between">
         <div className="flex items-baseline gap-3">
@@ -75,14 +76,17 @@ function Podium({ agent, active }: { agent: AgentView; active: boolean }) {
   return (
     <div
       className={cn(
-        "relative flex flex-col border bg-card p-4 min-h-[200px]",
-        speaking ? "border-orange-400/50" : "border-border/50",
+        "glass relative flex flex-col overflow-hidden p-4 min-h-[200px]",
+        speaking && "!border-orange-400/50",
       )}
     >
       {speaking && <div className="absolute inset-0 bg-orange-400/[0.05] animate-pulse pointer-events-none" />}
 
       <div className="relative z-10 flex items-baseline justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-orange-400">
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.25em]"
+          style={{ color: AGENT_WAVE_COLORS[agent.agentId] ?? "var(--accent)" }}
+        >
           {String(agent.agentId + 1).padStart(2, "0")} / {agent.role}
         </span>
         {speaking && (
@@ -117,7 +121,7 @@ function Podium({ agent, active }: { agent: AgentView; active: boolean }) {
       {/* The actual argument — full text (scrolls if long) */}
       <div className="relative z-10 mt-3 max-h-64 flex-1 overflow-y-auto border-t border-border/40 pt-3">
         {agent.critiqueText ? (
-          <p className="font-mono text-[10px] leading-relaxed text-muted-foreground/80 whitespace-pre-wrap">
+          <p className="font-mono text-[10px] leading-relaxed text-foreground/80 whitespace-pre-wrap">
             &ldquo;{agent.critiqueText}&rdquo;
           </p>
         ) : (
