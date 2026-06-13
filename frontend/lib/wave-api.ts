@@ -84,5 +84,6 @@ export type WaveEvent =
   | { type: "hash_submitted"; agentId: number; txHash: string; ts: number }
   | { type: "hash_confirmed"; agentId: number; txHash: string; ts: number }
   | { type: "wavefunction_collapsed"; winnerAgentId: number; winnerHash: string; winnerConfidence: number; ts: number }
+  | { type: "execution_redeemed"; winnerAgentId: number; txHash: string; ts: number }
   | { type: "execution_complete"; winnerAgentId: number; ts: number }
   | { type: "error"; message: string; ts: number }

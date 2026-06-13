@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type { Hex } from 'viem'
 import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
-import { createSubDelegations, splitBudget } from '@/services/delegationService'
+import { redelegateAgentContexts, splitBudget } from '@/services/delegationService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,9 +35,10 @@ export async function POST(
 
   try {
     const budgets = splitBudget(session.budgetUsdc)
-    const { agentDelegations } = await createSubDelegations({
+    // Redelegate the ERC-7715 root context to each agent → per-agent redeemable contexts.
+    const agentContexts = await redelegateAgentContexts({
       sessionId,
-      rootDelegation: body.rootDelegation as Hex,
+      rootContext: body.rootDelegation as Hex,
       budgets,
     })
 
@@ -49,14 +50,14 @@ export async function POST(
             ? body.rootDelegation
             : JSON.stringify(body.rootDelegation),
         delegationManager: body.delegationManager ?? null,
-        // Delegation objects are all hex strings — JSON-safe.
-        agentDelegations: agentDelegations as unknown as object,
+        // [{ agentId, permissionContext }] — hex strings, JSON-safe.
+        agentDelegations: agentContexts as unknown as object,
         status: 'DELEGATION_GRANTED',
       },
     })
 
-    logger.info({ sessionId, count: agentDelegations.length }, 'sub-delegations created')
-    return NextResponse.json({ status: 'ok', agentDelegations })
+    logger.info({ sessionId, count: agentContexts.length }, 'agent contexts redelegated')
+    return NextResponse.json({ status: 'ok', agentContexts })
   } catch (err) {
     logger.error({ err: (err as Error).message, sessionId }, 'grant-delegation failed')
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })

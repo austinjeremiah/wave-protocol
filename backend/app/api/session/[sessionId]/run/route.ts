@@ -7,6 +7,7 @@ import { getAgentWallets } from '@/services/agentWalletService'
 import { runAgent } from '@/services/veniceAgentService'
 import { runCollapse } from '@/services/collapseOrchestratorService'
 import { hashReasoningContent } from '@/services/delegationService'
+import { redeemWinnerDelegation } from '@/services/executionService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -116,6 +117,33 @@ export async function POST(
         },
       }),
     ])
+
+    // F3b — if the user granted a wallet delegation, redeem the winner's context to actually
+    // spend the delegated USDC (gated by the enforcer). Best-effort: never breaks the collapse.
+    try {
+      const granted = session.agentDelegations as unknown as
+        | { agentId: number; permissionContext: Hex }[]
+        | null
+      const winnerCtx = Array.isArray(granted)
+        ? granted.find((c) => c.agentId === collapse.winnerAgentId)?.permissionContext
+        : undefined
+      if (winnerCtx) {
+        const winnerAddr = agents.find((a) => a.agentId === collapse.winnerAgentId)!.address
+        const redeemTx = await redeemWinnerDelegation({
+          winnerContext: winnerCtx,
+          recipient: winnerAddr,
+          amountUsdc: 0.05,
+        })
+        await publish(sessionId, {
+          type: 'execution_redeemed',
+          winnerAgentId: collapse.winnerAgentId,
+          txHash: redeemTx,
+        })
+        logger.info({ sessionId, redeemTx }, 'winner delegation redeemed')
+      }
+    } catch (e) {
+      logger.warn({ err: (e as Error).message, sessionId }, 'winner redemption skipped')
+    }
 
     await publish(sessionId, { type: 'execution_complete', winnerAgentId: collapse.winnerAgentId })
     logger.info({ sessionId, winner: collapse.winnerAgentId }, 'collapse complete')
