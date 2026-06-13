@@ -76,7 +76,7 @@ function toLines(events: WaveEvent[]): LogLine[] {
         })
         break
       case "execution_supplied":
-        lines.push({ id, icon: "🌊", text: `supplied to ${e.protocol.toLowerCase()} — earning yield`, txHash: e.txHash, tone: "exec" })
+        lines.push({ id, icon: "🌊", text: `supplied to ${e.protocol.toLowerCase()} — you own it, earning yield`, txHash: e.txHash, tone: "exec" })
         break
       case "execution_complete":
         lines.push({ id, icon: "◆", text: `session complete`, tone: "accent" })

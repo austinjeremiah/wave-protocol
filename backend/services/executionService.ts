@@ -50,7 +50,7 @@ export async function redeemWinnerDelegation(params: {
   )
 }
 
-/** Minimal ABI for WaveStrategyVault.executeStrategy(bytes32, uint8). */
+/** Minimal ABI for WaveStrategyVault.executeStrategy(bytes32, uint8, address). */
 const VAULT_ABI = [
   {
     name: 'executeStrategy',
@@ -59,6 +59,7 @@ const VAULT_ABI = [
     inputs: [
       { name: 'sessionId', type: 'bytes32' },
       { name: 'winnerAgentId', type: 'uint8' },
+      { name: 'user', type: 'address' },
     ],
     outputs: [],
   },
@@ -85,12 +86,15 @@ export async function fundVaultFromTreasury(params: { amountUsdc: number }): Pro
 
 /**
  * Step 2 of the strategy execution: call WaveStrategyVault.executeStrategy() so the vault
- * supplies its received USDC to Compound V3 on Base Sepolia, earning real yield.
- * Step 1 (the delegation redeem OR treasury funding) must have already sent USDC to the vault.
+ * supplies its received USDC to Compound V3 on Base Sepolia — credited to `userAddress`, so the
+ * USER owns the position + yield. The vault is gated by the enforcer (only deploys if the swarm
+ * collapsed onchain to winnerAgentId). Step 1 (delegation redeem OR treasury funding) must have
+ * already sent USDC to the vault.
  */
 export async function executeVaultStrategy(params: {
   sessionId: Hex
   winnerAgentId: number
+  userAddress: Address
 }): Promise<Hex> {
   const vaultAddress = WAVE_STRATEGY_VAULT_ADDRESS
   if (!vaultAddress) throw new Error('WAVE_STRATEGY_VAULT_ADDRESS is not set')
@@ -100,7 +104,7 @@ export async function executeVaultStrategy(params: {
       address: vaultAddress,
       abi: VAULT_ABI,
       functionName: 'executeStrategy',
-      args: [params.sessionId, params.winnerAgentId],
+      args: [params.sessionId, params.winnerAgentId, params.userAddress],
     })
   )
 }

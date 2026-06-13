@@ -18,10 +18,10 @@ export const VENICE_API_URL = process.env.VENICE_API_URL ?? 'https://api.venice.
 /** Reasoning model id — a Venice "thinking" model that returns reasoning_content. */
 export const VENICE_MODEL = process.env.VENICE_MODEL ?? 'zai-org-glm-4.7-flash'
 
-/** USDC budget split across the 3 agents (Research / Analysis / Execution). */
+/** USDC budget split across the 3 strategist lenses (Yield / Risk / Liquidity). */
 export const AGENT_BUDGET_SPLIT = [0.4, 0.35, 0.25] as const
-/** Agent roles, indexed by agentId. */
-export const AGENT_ROLES = ['Research', 'Analysis', 'Execution'] as const
+/** Agent roles (yield-strategist lenses), indexed by agentId. */
+export const AGENT_ROLES = ['Yield', 'Risk', 'Liquidity'] as const
 
 /** WaveStrategyVault — deployed to Base Sepolia; accepts delegated USDC and supplies to Compound V3. */
 export const WAVE_STRATEGY_VAULT_ADDRESS = process.env.WAVE_STRATEGY_VAULT_ADDRESS as `0x${string}` | undefined

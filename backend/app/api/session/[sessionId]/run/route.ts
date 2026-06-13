@@ -9,6 +9,9 @@ import { runCollapse } from '@/services/collapseOrchestratorService'
 import { hashReasoningContent } from '@/services/delegationService'
 import { redeemWinnerDelegation, executeVaultStrategy, fundVaultFromTreasury } from '@/services/executionService'
 import { waitForTx } from '@/services/enforcerService'
+import { getBackendAccount } from '@/services/chainService'
+
+const DEMO_DEAD = '0x000000000000000000000000000000000000dEaD'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,7 +62,9 @@ function logEvent(e: Record<string, unknown>) {
       )
       break
     case 'execution_supplied':
-      logger.info(`  🌊 USDC supplied to Compound V3 — aUSDC minted  ${short(e.txHash)}`)
+      logger.info(
+        `  🌊 USDC supplied to Compound V3 — cUSDC credited to ${short(e.recipient)} (user owns it)  ${short(e.txHash)}`
+      )
       break
     case 'execution_complete':
       logger.info(`◆ SESSION COMPLETE — winner agent ${e.winnerAgentId}`)
@@ -238,6 +243,13 @@ export async function POST(
 
       await publish(sessionId, { type: 'execution_started', winnerAgentId: collapse.winnerAgentId })
 
+      // Who owns the resulting Compound position: the connected user; falls back to the backend
+      // EOA only when no wallet was connected (so demo funds aren't sent to the dead address).
+      const recipient =
+        session.userAddress && session.userAddress.toLowerCase() !== DEMO_DEAD.toLowerCase()
+          ? (session.userAddress as `0x${string}`)
+          : getBackendAccount().address
+
       const granted = session.agentDelegations as unknown as
         | { agentId: number; permissionContext: Hex }[]
         | null
@@ -275,10 +287,11 @@ export async function POST(
       // Wait for funding to mine — vault.executeStrategy reads balanceOf(vault).
       await waitForTx(fundingTx)
 
-      // Step 2: vault supplies its USDC to Compound V3 → cUSDC minted, earning yield.
+      // Step 2: vault supplies its USDC to Compound V3 → cUSDC credited to the USER (they own it).
       const supplyTx = await executeVaultStrategy({
         sessionId,
         winnerAgentId: collapse.winnerAgentId,
+        userAddress: recipient,
       })
       await publish(sessionId, {
         type: 'execution_supplied',
@@ -286,6 +299,7 @@ export async function POST(
         txHash: supplyTx,
         protocol: 'Compound V3',
         vaultAddress,
+        recipient,
       })
       await waitForTx(supplyTx)
       await prisma.session.update({

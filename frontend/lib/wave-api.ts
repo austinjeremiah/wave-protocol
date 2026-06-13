@@ -2,8 +2,8 @@
 
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001"
 
-/** Roles by agentId (matches the backend). */
-export const AGENT_ROLES = ["Research", "Analysis", "Execution"] as const
+/** Roles by agentId (yield-strategist lenses; matches the backend). */
+export const AGENT_ROLES = ["Yield", "Risk", "Liquidity"] as const
 
 /** A throwaway address for the no-wallet demo path (replaced by the connected wallet in F3). */
 export const DEMO_USER_ADDRESS = "0x000000000000000000000000000000000000dEaD"
@@ -63,6 +63,7 @@ export interface SessionRecord {
   userIntent: string
   budgetUsdc: number
   status: string
+  userAddress: string
   winnerAgentId: number | null
   winnerHash: string | null
   strategyVaultTx: string | null
@@ -99,6 +100,6 @@ export type WaveEvent =
   // Strategy execution
   | { type: "execution_started"; winnerAgentId: number; ts: number }
   | { type: "execution_redeemed"; winnerAgentId: number; txHash: string; viaDelegation: boolean; ts: number }
-  | { type: "execution_supplied"; winnerAgentId: number; txHash: string; protocol: string; vaultAddress: string; ts: number }
+  | { type: "execution_supplied"; winnerAgentId: number; txHash: string; protocol: string; vaultAddress: string; recipient: string; ts: number }
   | { type: "execution_complete"; winnerAgentId: number; ts: number }
   | { type: "error"; message: string; ts: number }

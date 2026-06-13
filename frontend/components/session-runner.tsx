@@ -76,7 +76,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
     }
   }, [mode, collapsedLive, sessionId])
 
-  const { agents, winnerId, winner, phase, errored, supplied, supplyTxHash } = useMemo(
+  const { agents, winnerId, winner, phase, errored, supplied, supplyTxHash, recipient } = useMemo(
     () => (mode === "replay" ? deriveStored(stored) : deriveLive(events)),
     [mode, stored, events],
   )
@@ -162,6 +162,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
             winnerHash={winner?.winnerHash ?? null}
             action={winnerAction}
             supplyTxHash={supplyTxHash ?? stored?.aaveSupplyTx ?? null}
+            recipient={recipient ?? stored?.userAddress ?? null}
           />
         )}
         </div>
@@ -180,11 +181,13 @@ function ResultCard({
   winnerHash,
   action,
   supplyTxHash,
+  recipient,
 }: {
   winnerAgent: AgentView
   winnerHash: string | null
   action: string | null
   supplyTxHash: string | null
+  recipient: string | null
 }) {
   return (
     <section className="mt-10 border border-accent/40 bg-card p-8">
@@ -236,22 +239,37 @@ function ResultCard({
         )}
       </div>
 
-      {/* Compound V3 supply proof */}
+      {/* Your Compound V3 position — the user owns the yield */}
       {supplyTxHash && (
         <div className="mt-6 border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-400">
-            Strategy Executed · Compound V3
+            Your Position · Compound V3
           </span>
           <p className="mt-1 font-mono text-[10px] text-muted-foreground/70 leading-relaxed">
-            Delegated USDC supplied to Compound V3 on Base Sepolia — earning real yield. The losers&#39; delegations are permanently gated by the enforcer.
+            Your USDC is now supplied to Compound V3 on Base Sepolia, earning real yield —{" "}
+            <span className="text-foreground/80">you own this position</span> and can withdraw anytime.
+            The agents chose the strategy; the enforcer guaranteed they couldn&#39;t touch anything else.
           </p>
+          {recipient && (
+            <p className="mt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
+              credited to{" "}
+              <a
+                href={`https://sepolia.basescan.org/address/${recipient}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-emerald-400 hover:underline"
+              >
+                {recipient.slice(0, 6)}…{recipient.slice(-4)} ↗
+              </a>
+            </p>
+          )}
           <a
             href={basescanTx(supplyTxHash)}
             target="_blank"
             rel="noreferrer"
             className="mt-2 inline-block font-mono text-[10px] uppercase tracking-widest text-emerald-400 hover:underline"
           >
-            View Compound supply tx ↗
+            View your supply tx ↗
           </a>
         </div>
       )}
@@ -295,6 +313,7 @@ function deriveLive(events: WaveEvent[]) {
   let errored: string | null = null
   let supplied = false
   let supplyTxHash: string | null = null
+  let recipient: string | null = null
 
   for (const e of events) {
     switch (e.type) {
@@ -350,6 +369,7 @@ function deriveLive(events: WaveEvent[]) {
       case "execution_supplied":
         supplied = true
         supplyTxHash = e.txHash
+        recipient = e.recipient
         break
       case "error":
         errored = e.message
@@ -369,12 +389,13 @@ function deriveLive(events: WaveEvent[]) {
     errored,
     supplied,
     supplyTxHash,
+    recipient,
   }
 }
 
 function deriveStored(s: SessionRecord | null) {
   if (!s) {
-    return { agents: [] as AgentView[], winnerId: null, winner: null, phase: "connecting" as Phase, errored: null, supplied: false, supplyTxHash: null }
+    return { agents: [] as AgentView[], winnerId: null, winner: null, phase: "connecting" as Phase, errored: null, supplied: false, supplyTxHash: null, recipient: null }
   }
   const agents: AgentView[] = (s.agentResults ?? [])
     .map((r) => ({
@@ -409,6 +430,7 @@ function deriveStored(s: SessionRecord | null) {
     errored: null,
     supplied: !!s.aaveSupplyTx,
     supplyTxHash: s.aaveSupplyTx ?? null,
+    recipient: s.userAddress ?? null,
   }
 }
 
@@ -467,7 +489,7 @@ function eventsFromStored(s: SessionRecord | null): WaveEvent[] {
   if (s.strategyVaultTx)
     out.push({ type: "execution_redeemed", winnerAgentId: s.winnerAgentId ?? 0, txHash: s.strategyVaultTx, viaDelegation: false, ts: 0 })
   if (s.aaveSupplyTx)
-    out.push({ type: "execution_supplied", winnerAgentId: s.winnerAgentId ?? 0, txHash: s.aaveSupplyTx, protocol: "Compound V3", vaultAddress: "", ts: 0 })
+    out.push({ type: "execution_supplied", winnerAgentId: s.winnerAgentId ?? 0, txHash: s.aaveSupplyTx, protocol: "Compound V3", vaultAddress: "", recipient: s.userAddress ?? "", ts: 0 })
   if (s.winnerAgentId != null) out.push({ type: "execution_complete", winnerAgentId: s.winnerAgentId, ts: 0 })
 
   return out

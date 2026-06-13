@@ -2,9 +2,9 @@
 pragma solidity ^0.8.23;
 
 interface IComet {
-    /// @notice Supply an asset to Compound V3.
-    function supply(address asset, uint256 amount) external;
-    /// @notice Base token (USDC) balance of an account in the protocol.
+    /// @notice Supply an asset to Compound V3 on behalf of `dst` (credits dst's position).
+    function supplyTo(address dst, address asset, uint256 amount) external;
+    /// @notice Base token (USDC) supply balance of an account in the protocol.
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -14,27 +14,44 @@ interface IERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
 }
 
+interface IVeniceEnforcer {
+    /// @notice Onchain collapse state for a session (from VeniceCollapseEnforcer).
+    function getSession(bytes32 sessionId)
+        external
+        view
+        returns (uint8 submissionCount, uint8 requiredAgents, uint8 winnerAgentId, bool collapsed, address initiator);
+}
+
 /**
- * WaveStrategyVault — the Wave Protocol execution layer.
+ * WaveStrategyVault — the Wave Protocol execution layer (AI yield manager).
  *
- * Two-tx execution proof (both visible on Basescan):
- *   tx1: USDC.transfer(vault, amount)       — winner's ERC-7715 delegation redeemed;
- *                                              VeniceCollapseEnforcer blocks any loser.
- *   tx2: vault.executeStrategy(session, id) — backend calls this; vault approves + supplies
- *                                              all received USDC to Compound V3 (cUSDCv3)
- *                                              on Base Sepolia, earning real yield.
+ * After the agent swarm collapses to a winner, capital lands in this vault (from the user's
+ * ERC-7715 delegation redeem, or treasury for the demo). The backend then calls executeStrategy,
+ * which:
+ *   1. CHECKS the VeniceCollapseEnforcer — refuses to deploy unless the swarm actually collapsed
+ *      onchain to the given winner (cryptographically constrained AI — it can't act off-consensus).
+ *   2. Skims a protocol fee to the treasury.
+ *   3. Supplies the rest to Compound V3 **on behalf of the USER** (supplyTo) — so the USER owns
+ *      the cUSDC position and all the yield. They can withdraw from Compound directly, anytime.
  *
- * The vault is owned by the backend EOA. One vault serves all sessions.
+ * The vault never keeps the position — it's a constrained router. One vault serves all sessions.
  */
 contract WaveStrategyVault {
     /// @notice Compound V3 Comet on Base Sepolia (baseToken = Circle USDC).
     address public immutable comet;
     address public immutable usdc;
-    address public immutable owner;
+    /// @notice VeniceCollapseEnforcer — the onchain consensus the vault is gated by.
+    address public immutable enforcer;
+    /// @notice Fee recipient + privileged caller (the backend/protocol EOA).
+    address public immutable treasury;
+    /// @notice Protocol fee in basis points (e.g. 100 = 1%).
+    uint16 public immutable feeBps;
 
     struct ExecutionRecord {
         uint8   winnerAgentId;
-        uint256 amountUsdc;   // amount supplied to Compound (6 dec)
+        address user;          // who the Compound position was credited to
+        uint256 amountUsdc;    // net supplied to Compound (6 dec)
+        uint256 feeUsdc;       // protocol fee taken
         bool    executed;
     }
 
@@ -43,55 +60,69 @@ contract WaveStrategyVault {
     event StrategyExecuted(
         bytes32 indexed sessionId,
         uint8   indexed winnerAgentId,
+        address indexed user,
         uint256         amountUsdc,
+        uint256         feeUsdc,
         address         comet
     );
 
-    error OnlyOwner();
+    error OnlyTreasury();
     error AlreadyExecuted();
     error NoUsdcBalance();
+    error NoOnchainConsensus();
 
-    constructor(address _comet, address _usdc) {
-        comet  = _comet;
-        usdc   = _usdc;
-        owner  = msg.sender;
+    constructor(address _comet, address _usdc, address _enforcer, address _treasury, uint16 _feeBps) {
+        comet    = _comet;
+        usdc     = _usdc;
+        enforcer = _enforcer;
+        treasury = _treasury;
+        feeBps   = _feeBps;
     }
 
-    modifier onlyOwner() {
-        if (msg.sender != owner) revert OnlyOwner();
+    modifier onlyTreasury() {
+        if (msg.sender != treasury) revert OnlyTreasury();
         _;
     }
 
     /**
-     * Step 2: called by backend after USDC lands here from the delegation redeem.
-     * Approves and supplies the full USDC balance to Compound V3, minting cUSDC to vault.
-     * The cUSDC (Compound supply position) earns yield automatically.
+     * Deploy the vault's USDC into Compound V3, credited to `user`.
+     * Gated by the enforcer: only runs if the swarm collapsed onchain to `winnerAgentId`.
      */
-    function executeStrategy(bytes32 sessionId, uint8 winnerAgentId) external onlyOwner {
+    function executeStrategy(bytes32 sessionId, uint8 winnerAgentId, address user) external onlyTreasury {
         if (executions[sessionId].executed) revert AlreadyExecuted();
+
+        // Constrained AI — the vault won't move funds unless the onchain collapse agrees.
+        (, , uint8 win, bool collapsed, ) = IVeniceEnforcer(enforcer).getSession(sessionId);
+        if (!collapsed || win != winnerAgentId) revert NoOnchainConsensus();
 
         uint256 bal = IERC20(usdc).balanceOf(address(this));
         if (bal == 0) revert NoUsdcBalance();
 
+        uint256 fee = (bal * feeBps) / 10_000;
+        uint256 net = bal - fee;
+
         executions[sessionId] = ExecutionRecord({
             winnerAgentId: winnerAgentId,
-            amountUsdc:    bal,
+            user:          user,
+            amountUsdc:    net,
+            feeUsdc:       fee,
             executed:      true
         });
 
-        IERC20(usdc).approve(comet, bal);
-        IComet(comet).supply(usdc, bal);
+        if (fee > 0) IERC20(usdc).transfer(treasury, fee); // protocol fee
+        IERC20(usdc).approve(comet, net);
+        IComet(comet).supplyTo(user, usdc, net);           // USER owns the Compound position
 
-        emit StrategyExecuted(sessionId, winnerAgentId, bal, comet);
+        emit StrategyExecuted(sessionId, winnerAgentId, user, net, fee, comet);
     }
 
-    /// @notice Compound V3 supply position balance (cUSDC) held by this vault.
-    function strategyBalance() external view returns (uint256) {
-        return IComet(comet).balanceOf(address(this));
+    /// @notice A user's Compound V3 supply position (cUSDC, base units).
+    function userPosition(address user) external view returns (uint256) {
+        return IComet(comet).balanceOf(user);
     }
 
-    /// @notice Emergency withdrawal — owner recovers USDC if supply fails.
-    function recoverUsdc(address to) external onlyOwner {
+    /// @notice Emergency: treasury recovers any stuck USDC from the vault.
+    function recoverUsdc(address to) external onlyTreasury {
         uint256 bal = IERC20(usdc).balanceOf(address(this));
         if (bal == 0) revert NoUsdcBalance();
         IERC20(usdc).transfer(to, bal);

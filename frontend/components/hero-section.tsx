@@ -56,12 +56,13 @@ export function HeroSection() {
         </SplitFlapAudioProvider>
 
         <h2 className="font-[var(--font-bebas)] text-muted-foreground/60 text-[clamp(1rem,3vw,2rem)] mt-4 tracking-wide">
-          Protocol — Multi-Agent Intent Collapse
+          Protocol — The AI Yield Manager
         </h2>
 
         <p className="mt-12 max-w-md font-mono text-sm text-muted-foreground leading-relaxed">
-          Three AI agents explore one intent in superposition. Their reasoning is hashed onchain, and a
-          custom caveat enforcer collapses the wave to the highest-confidence answer.
+          Deposit idle stablecoins. Three AI agents debate the best yield strategy and deploy your
+          capital onchain — a caveat enforcer guarantees they can only act on consensus. You own the
+          position and the yield.
         </p>
 
         <div className="mt-16 flex items-center gap-8">
@@ -69,7 +70,7 @@ export function HeroSection() {
             href="/session/new"
             className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200"
           >
-            <ScrambleTextOnHover text="Run a Collapse" as="span" duration={0.6} />
+            <ScrambleTextOnHover text="Deploy Your USDC" as="span" duration={0.6} />
             <BitmapChevron className="transition-transform duration-[400ms] ease-in-out group-hover:rotate-45" />
           </a>
           <a

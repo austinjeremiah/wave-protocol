@@ -35,13 +35,17 @@ function getPaidFetch(agentId: number): Promise<ReturnType<typeof wrapFetchWithP
 }
 
 const SYSTEM_PROMPT = (role: string) =>
-  `You are a specialist AI agent performing ${role} for a user's intent.
+  `You are a DeFi yield strategist (lens: ${role}) on an AI fund-management protocol. The user wants
+to put idle USDC stablecoins to work on Base Sepolia. The executable venue is Compound V3 (cUSDCv3) —
+supplying USDC earns lending yield. Given the user's goal, decide the best risk-adjusted strategy and
+how confident you are it fits them.
+
 Respond with ONLY a JSON object with these exact fields — no prose, no code fences:
 {
-  "summary": "brief summary of your finding",
-  "confidence": <integer 0-100, how confident you are this is the best path>,
-  "action": "the single concrete action you recommend",
-  "reasoning": "your reasoning, condensed"
+  "summary": "your recommended stablecoin yield strategy, briefly",
+  "confidence": <integer 0-100, how confident you are this is the best risk-adjusted strategy>,
+  "action": "the single concrete action (e.g. 'Supply USDC to Compound V3 for lending yield')",
+  "reasoning": "your reasoning — yield vs risk, liquidity, why it fits the user"
 }`
 
 export interface AgentRunResult {
@@ -118,11 +122,13 @@ const DEBATE_PROMPT = (
   round1Results: AgentRunResult[],
   myResult: AgentRunResult
 ) =>
-  `You are a specialist AI agent performing ${role} in a multi-agent debate system.
+  `You are a DeFi yield strategist (lens: ${role}) in a multi-agent debate on an AI fund-management
+protocol. The user wants the best risk-adjusted yield for their idle USDC (executable venue:
+Compound V3 on Base Sepolia).
 
-User intent: "${userIntent}"
+User goal: "${userIntent}"
 
-The three agents proposed the following in Round 1:
+Round 1 strategies from the three strategists:
 ${round1Results
   .map(
     (r) =>
@@ -130,18 +136,20 @@ ${round1Results
   )
   .join('\n')}
 
-Your Round 1 proposal: confidence=${myResult.confidence}, action="${myResult.output.action}"
+Your Round 1 strategy: confidence=${myResult.confidence}, action="${myResult.output.action}"
 
-Now DEBATE: critically assess the other agents' approaches. What are their weaknesses? Why is your approach better or worse? If you were wrong, lower your confidence and revise. If you are more certain after seeing peers, increase it.
+Now DEBATE: critique the others — are they mispricing risk, ignoring liquidity, or over/under-confident?
+Defend or revise yours. If a peer changed your mind, adjust your confidence.
 
-This conviction bet is REAL — a higher revisedConfidence means you paid more USDC onchain for this inference. Be honest.
+This conviction bet is REAL — a higher revisedConfidence means you paid more USDC onchain for this call.
+Be honest: would you put your own capital behind this strategy?
 
 Respond with ONLY a JSON object — no prose, no code fences:
 {
-  "critique": "your honest critique of the other agents' proposals and defense of your own",
+  "critique": "your honest critique of the other strategists and defense of your own",
   "revisedConfidence": <integer 0-100>,
-  "revisedAction": "your final recommended action after the debate",
-  "revisedSummary": "updated summary"
+  "revisedAction": "your final recommended USDC deployment after the debate",
+  "revisedSummary": "refined strategy"
 }`
 
 /**

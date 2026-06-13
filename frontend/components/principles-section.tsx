@@ -19,7 +19,7 @@ export function PrinciplesSection() {
         { text: "PARALLEL ", highlight: false },
         { text: "SUPERPOSITION", highlight: true },
       ],
-      description: "Three agents explore the same intent simultaneously. Nothing collapses until all have reasoned.",
+      description: "Three strategist lenses explore your goal simultaneously, then debate. Nothing collapses until they've argued it out.",
       align: "left",
     },
     {
@@ -28,25 +28,25 @@ export function PrinciplesSection() {
         { text: "ONCHAIN ", highlight: false },
         { text: "CONSENSUS", highlight: true },
       ],
-      description: "We don't pick the winner — a Solidity enforcer reads every reasoning hash and selects the highest confidence.",
+      description: "We don't pick the strategy — a Solidity enforcer reads every reasoning hash and collapses to the highest conviction.",
       align: "right",
     },
     {
       number: "03",
       titleParts: [
-        { text: "PAY ", highlight: false },
-        { text: "PER-INFERENCE", highlight: true },
+        { text: "CONVICTION ", highlight: false },
+        { text: "AT STAKE", highlight: true },
       ],
-      description: "Every agent funds its own thinking via x402. Compute is metered, onchain, and permissionless.",
+      description: "Every agent funds its own thinking via x402 — and bets more the more confident it is. Metered, onchain, honest.",
       align: "left",
     },
     {
       number: "04",
       titleParts: [
-        { text: "DELEGATED ", highlight: false },
+        { text: "CONSTRAINED ", highlight: false },
         { text: "AUTHORITY", highlight: true },
       ],
-      description: "The user grants scoped USDC budgets via ERC-7710. Losing agents are gated; only the winner can act.",
+      description: "The AI deploys your USDC into Compound V3 — but the enforcer guarantees it can only act on consensus. You own the yield.",
       align: "right",
     },
   ]

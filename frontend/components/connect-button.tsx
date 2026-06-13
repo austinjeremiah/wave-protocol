@@ -16,12 +16,12 @@ export function ConnectButton({
   if (!hasWallet) {
     return (
       <a
-        href="https://docs.metamask.io/snaps/get-started/install-flask/"
+        href="https://metamask.io/download/"
         target="_blank"
         rel="noreferrer"
         className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors"
       >
-        Install MetaMask Flask ↗
+        Install a Wallet ↗
       </a>
     )
   }
@@ -47,7 +47,7 @@ export function ConnectButton({
       disabled={connecting}
       className="border border-foreground/20 px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-40"
     >
-      {connecting ? "Connecting…" : "Connect Flask"}
+      {connecting ? "Connecting…" : "Connect Wallet"}
     </button>
   )
 }

@@ -172,7 +172,7 @@ export function ColophonSection() {
         <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
           © 2025 Wave Protocol. Built on Base Sepolia.
         </p>
-        <p className="font-mono text-[10px] text-muted-foreground">Three agents. One intent. Onchain collapse.</p>
+        <p className="font-mono text-[10px] text-muted-foreground">AI debates. You own the yield. Onchain.</p>
       </div>
     </section>
   )

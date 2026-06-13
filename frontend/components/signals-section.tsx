@@ -9,29 +9,29 @@ gsap.registerPlugin(ScrollTrigger)
 
 const signals = [
   {
-    date: "INPUT",
-    title: "Intent",
-    note: "You submit one high-level intent and a USDC budget. That's the entire input.",
+    date: "DEPOSIT",
+    title: "Goal",
+    note: "You set a goal/risk and an amount of idle USDC to put to work. That's the entire input.",
   },
   {
     date: "VENICE",
-    title: "Superposition",
-    note: "Three specialist agents — Research, Analysis, Execution — explore the intent in parallel via Venice AI.",
+    title: "Debate",
+    note: "Three strategist lenses — Yield, Risk, Liquidity — debate the best strategy in parallel via Venice AI, then critique each other.",
   },
   {
     date: "x402",
-    title: "Pay-Per-Call",
-    note: "Each agent pays for its own inference with x402 — USDC settled onchain on Base Sepolia.",
-  },
-  {
-    date: "ONCHAIN",
-    title: "Commit",
-    note: "Every agent's private reasoning is keccak-hashed and committed to the enforcer contract.",
+    title: "Conviction",
+    note: "Each agent pays for its own inference with x402 — and bets more USDC the more confident it is. Real skin in the game, onchain.",
   },
   {
     date: "ERC-7710",
-    title: "Collapse",
-    note: "A custom caveat enforcer reads all hashes and collapses to the highest-confidence agent.",
+    title: "Consensus",
+    note: "Reasoning is hashed and committed to a custom caveat enforcer that collapses to the highest-conviction strategy onchain.",
+  },
+  {
+    date: "COMPOUND V3",
+    title: "You Own It",
+    note: "The winning strategy deploys your USDC into Compound V3 — credited to you. You own the position and the yield; the enforcer keeps the AI on-strategy.",
   },
 ]
 

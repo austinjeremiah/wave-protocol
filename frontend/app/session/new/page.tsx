@@ -8,9 +8,9 @@ import { useGrantDelegation } from "@/hooks/use-grant-delegation"
 import { ConnectButton } from "@/components/connect-button"
 
 const SUGGESTIONS = [
-  "Recommend one low-risk onchain strategy to grow idle stablecoins for a beginner",
-  "Research the best Ethereum L2 for a low-cost consumer payments app and pick one",
-  "Decide whether to bridge or swap to move USDC from Base to Arbitrum cheaply",
+  "Grow my idle USDC with the lowest risk — capital preservation first",
+  "Best risk-adjusted yield for my stablecoins, I can tolerate some risk",
+  "Put my USDC to work but keep it liquid — I may withdraw soon",
 ]
 
 type Phase = "" | "creating" | "granting"
@@ -89,13 +89,13 @@ export default function NewSessionPage() {
         </div>
 
         <div className="mt-8 mb-12">
-          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">New Session</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">New Position</span>
           <h1 className="mt-4 font-[var(--font-bebas)] text-6xl md:text-7xl tracking-tight leading-none">
-            RUN A COLLAPSE
+            DEPLOY YOUR USDC
           </h1>
           <p className="mt-4 font-mono text-sm text-muted-foreground leading-relaxed max-w-md">
-            Submit one intent and a budget. Three agents will explore it in superposition; the chain
-            collapses to the winner.
+            Set your goal and amount. Three AI strategists debate the best yield strategy, reach
+            onchain consensus, and deploy it — you own the position and the yield.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export default function NewSessionPage() {
           {/* Intent */}
           <div>
             <label className="flex items-baseline justify-between mb-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Intent</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Your Goal / Risk</span>
               <span className={`font-mono text-[10px] ${tooLong ? "text-destructive" : "text-muted-foreground/50"}`}>
                 {intent.trim().length}/500
               </span>
@@ -112,7 +112,7 @@ export default function NewSessionPage() {
               value={intent}
               onChange={(e) => setIntent(e.target.value)}
               rows={4}
-              placeholder="Research X and recommend one decision…"
+              placeholder="e.g. grow my idle USDC safely, low risk, keep it liquid…"
               className="w-full resize-none bg-card border border-border px-4 py-3 font-mono text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-accent transition-colors"
             />
             <div className="mt-3 flex flex-wrap gap-2">
@@ -132,7 +132,7 @@ export default function NewSessionPage() {
           {/* Budget */}
           <div>
             <label className="flex items-baseline justify-between mb-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Budget</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">Amount to Deploy</span>
               <span className="font-mono text-xs text-accent">{budget.toFixed(0)} USDC</span>
             </label>
             <input
@@ -145,7 +145,7 @@ export default function NewSessionPage() {
               className="w-full accent-[oklch(0.7_0.2_45)]"
             />
             <p className="mt-2 font-mono text-[10px] text-muted-foreground/60">
-              Split across agents — 40% Research · 35% Analysis · 25% Execution.
+              Debated by 3 strategist lenses — Yield · Risk · Liquidity. You own the resulting position.
             </p>
           </div>
 
@@ -160,10 +160,11 @@ export default function NewSessionPage() {
               />
               <span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground">
-                  Delegate USDC budget (ERC-7715)
+                  Fund with your own USDC (ERC-7715)
                 </span>
                 <span className="mt-1 block font-mono text-[10px] text-muted-foreground/70 leading-relaxed">
-                  Sign a spending cap to Agent A in MetaMask Flask. The winning agent can then spend within it.
+                  Optional — sign a spending cap so YOUR USDC is deployed. Otherwise the protocol fronts
+                  the demo capital, credited to your address either way.
                 </span>
               </span>
             </label>
@@ -177,7 +178,7 @@ export default function NewSessionPage() {
               disabled={tooShort || tooLong || busy}
               className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-foreground/20 disabled:hover:text-foreground"
             >
-              {phase === "creating" ? "Initializing onchain…" : phase === "granting" ? "Awaiting signature…" : "Run a Collapse"}
+              {phase === "creating" ? "Initializing onchain…" : phase === "granting" ? "Awaiting signature…" : "Deploy USDC"}
               <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
             </button>
 

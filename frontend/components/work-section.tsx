@@ -9,34 +9,34 @@ gsap.registerPlugin(ScrollTrigger)
 
 const experiments = [
   {
-    title: "Collapse Enforcer",
+    title: "Constrained AI",
     medium: "ERC-7710 / Solidity",
     description:
-      "Our custom caveat enforcer on Base Sepolia. It reads every agent's reasoning hash, picks the highest-confidence winner, and gates which delegation can be redeemed.",
+      "Our custom caveat enforcer on Base Sepolia. The vault physically cannot deploy your funds unless the agent swarm reached onchain consensus — the AI can only act on the agreed strategy, within your budget.",
     span: "col-span-2 row-span-2",
   },
   {
     title: "Venice AI",
     medium: "Inference",
-    description: "Three reasoning agents think in parallel; chain-of-thought hashed onchain.",
+    description: "Three yield strategists think in parallel and debate; chain-of-thought hashed onchain.",
     span: "col-span-1 row-span-1",
   },
   {
     title: "x402",
     medium: "Payments",
-    description: "Agents pay per inference in USDC, settled onchain via EIP-3009. No API keys.",
+    description: "Agents pay per inference in USDC via EIP-3009 — and bet more the more confident they are.",
     span: "col-span-1 row-span-2",
   },
   {
-    title: "Smart Accounts",
-    medium: "MetaMask",
-    description: "ERC-7710 delegation chain — the user grants scoped USDC budgets to each agent.",
+    title: "Compound V3",
+    medium: "Yield",
+    description: "The winning strategy supplies your USDC to Compound V3 — credited to you. You own the position + yield.",
     span: "col-span-1 row-span-1",
   },
   {
     title: "A2A Coordination",
     medium: "Consensus",
-    description: "Agent-to-agent delegation plus the onchain collapse as the agreement mechanism.",
+    description: "Agents critique each other across debate rounds; the onchain collapse is the agreement mechanism.",
     span: "col-span-2 row-span-1",
   },
   {

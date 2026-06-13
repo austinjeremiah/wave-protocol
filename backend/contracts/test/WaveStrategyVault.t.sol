@@ -5,77 +5,102 @@ import "forge-std/Test.sol";
 import "../src/WaveStrategyVault.sol";
 
 /**
- * Fork test against Base Sepolia — real Compound V3 (cUSDCv3) + real Circle USDC.
- * Requires BASE_SEPOLIA_RPC_URL env var. Run with:
- *   forge test --match-contract WaveStrategyVaultFork --fork-url $BASE_SEPOLIA_RPC_URL -vvv
+ * Fork test against Base Sepolia — REAL VeniceCollapseEnforcer, REAL Compound V3, REAL USDC.
+ * No mocks: the test drives the live enforcer to actually collapse a fresh session, then runs
+ * the vault against that real onchain consensus and verifies the USER receives the Compound
+ * position and the treasury receives the fee.
+ *
+ * Run: forge test --match-contract WaveStrategyVaultFork --fork-url $BASE_SEPOLIA_RPC_URL -vvv
  */
+interface IEnforcer {
+    function initSession(bytes32 sessionId, uint8 agentCount) external;
+    function submitReasoningHash(bytes32 sessionId, uint8 agentId, bytes32 reasoningHash, uint8 confidence) external;
+}
+
+interface IUSDC {
+    function balanceOf(address) external view returns (uint256);
+}
+
 contract WaveStrategyVaultFork is Test {
-    // Compound V3 Comet on Base Sepolia (baseToken = Circle USDC).
-    address constant COMET = 0x571621Ce60Cebb0c1D442B5afb38B1663C6Bf017;
-    // Circle testnet USDC on Base Sepolia.
-    address constant USDC  = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+    // Live Base Sepolia deployments.
+    address constant COMET    = 0x571621Ce60Cebb0c1D442B5afb38B1663C6Bf017; // Compound V3 (cUSDCv3)
+    address constant USDC     = 0x036CbD53842c5426634e7929541eC2318f3dCF7e; // Circle USDC
+    address constant ENFORCER = 0x3ec6F2c470e57f487709b153f77c02851fe864C5; // VeniceCollapseEnforcer
 
     WaveStrategyVault vault;
-    bytes32 constant SESSION = keccak256("test-session-1");
+    bytes32 sessionId = keccak256("wave-strategy-vault-fork-test-v2");
     uint256 constant ONE_USDC = 1_000_000; // 6 decimals
+    uint16  constant FEE_BPS  = 100;       // 1%
+    address constant USER     = address(0xA11CE);
 
     function setUp() public {
         string memory rpc = vm.envOr("BASE_SEPOLIA_RPC_URL", string(""));
-        if (bytes(rpc).length > 0) {
-            vm.createSelectFork(rpc);
-        }
-        vault = new WaveStrategyVault(COMET, USDC);
-        // Give the vault 1 USDC from the token contract itself (deal works on ERC-20).
-        deal(USDC, address(vault), ONE_USDC);
-        assertEq(IERC20(USDC).balanceOf(address(vault)), ONE_USDC, "deal failed");
+        require(bytes(rpc).length > 0, "set BASE_SEPOLIA_RPC_URL for the fork test");
+        vm.createSelectFork(rpc);
+
+        // treasury = this test contract (it deploys the vault and is the privileged caller).
+        vault = new WaveStrategyVault(COMET, USDC, ENFORCER, address(this), FEE_BPS);
+
+        // Drive the REAL enforcer to collapse a fresh session: agent 0 wins (highest confidence).
+        IEnforcer(ENFORCER).initSession(sessionId, 3);
+        IEnforcer(ENFORCER).submitReasoningHash(sessionId, 0, keccak256("r0"), 90);
+        IEnforcer(ENFORCER).submitReasoningHash(sessionId, 1, keccak256("r1"), 80);
+        IEnforcer(ENFORCER).submitReasoningHash(sessionId, 2, keccak256("r2"), 70); // 3rd submit auto-collapses
     }
 
-    function test_ExecuteStrategy_SuppliesUsdcToCompound() public {
-        vm.expectEmit(true, true, false, true, address(vault));
-        emit WaveStrategyVault.StrategyExecuted(SESSION, 0, ONE_USDC, COMET);
+    function test_ExecuteStrategy_CreditsUser_AndTakesFee() public {
+        deal(USDC, address(vault), ONE_USDC);
 
-        vault.executeStrategy(SESSION, 0);
+        uint256 userPosBefore = IUSDC(COMET).balanceOf(USER);
+        uint256 treasuryBefore = IUSDC(USDC).balanceOf(address(this));
 
-        // After supply, USDC balance in vault should be 0.
-        assertEq(IERC20(USDC).balanceOf(address(vault)), 0, "USDC should be 0 post-supply");
+        vault.executeStrategy(sessionId, 0, USER);
 
-        // Compound V3 position should reflect the supply (cUSDC balance > 0).
-        uint256 pos = vault.strategyBalance();
-        assertGt(pos, 0, "Compound position should be > 0");
+        uint256 fee = (ONE_USDC * FEE_BPS) / 10_000; // 0.01 USDC
+        uint256 net = ONE_USDC - fee;                // 0.99 USDC
 
-        // Execution record stored correctly.
-        (uint8 winner, uint256 amt, bool executed) = vault.executions(SESSION);
+        // USER owns the Compound V3 position (credited via supplyTo).
+        assertGt(IUSDC(COMET).balanceOf(USER) - userPosBefore, 0, "user should own a Compound position");
+        // Treasury received the protocol fee.
+        assertEq(IUSDC(USDC).balanceOf(address(this)) - treasuryBefore, fee, "treasury fee");
+        // Vault holds no USDC afterward (fee skimmed + net supplied).
+        assertEq(IUSDC(USDC).balanceOf(address(vault)), 0, "vault drained");
+
+        (uint8 winner, address user, uint256 amt, uint256 feeRec, bool executed) = vault.executions(sessionId);
         assertEq(winner, 0);
-        assertEq(amt, ONE_USDC);
+        assertEq(user, USER);
+        assertEq(amt, net);
+        assertEq(feeRec, fee);
         assertTrue(executed);
     }
 
-    function test_ExecuteStrategy_RevertsIfNoUsdc() public {
-        // Deploy a fresh vault with no balance.
-        WaveStrategyVault empty = new WaveStrategyVault(COMET, USDC);
-        vm.expectRevert(WaveStrategyVault.NoUsdcBalance.selector);
-        empty.executeStrategy(SESSION, 0);
+    function test_ExecuteStrategy_RevertsOnWrongWinner() public {
+        deal(USDC, address(vault), ONE_USDC);
+        // Real winner is agent 0; passing agent 1 must be rejected by the enforcer gate.
+        vm.expectRevert(WaveStrategyVault.NoOnchainConsensus.selector);
+        vault.executeStrategy(sessionId, 1, USER);
+    }
+
+    function test_ExecuteStrategy_RevertsForNonTreasury() public {
+        deal(USDC, address(vault), ONE_USDC);
+        vm.prank(address(0xBEEF));
+        vm.expectRevert(WaveStrategyVault.OnlyTreasury.selector);
+        vault.executeStrategy(sessionId, 0, USER);
     }
 
     function test_ExecuteStrategy_RevertsIfAlreadyExecuted() public {
-        vault.executeStrategy(SESSION, 0);
-        deal(USDC, address(vault), ONE_USDC); // give more USDC
+        deal(USDC, address(vault), ONE_USDC);
+        vault.executeStrategy(sessionId, 0, USER);
+        deal(USDC, address(vault), ONE_USDC);
         vm.expectRevert(WaveStrategyVault.AlreadyExecuted.selector);
-        vault.executeStrategy(SESSION, 0);
-    }
-
-    function test_ExecuteStrategy_RevertsForNonOwner() public {
-        vm.prank(address(0xBEEF));
-        vm.expectRevert(WaveStrategyVault.OnlyOwner.selector);
-        vault.executeStrategy(SESSION, 0);
+        vault.executeStrategy(sessionId, 0, USER);
     }
 
     function test_RecoverUsdc() public {
-        address recipient = address(0xABCD);
-        uint256 before = IERC20(USDC).balanceOf(recipient);
-        vault.recoverUsdc(recipient);
-        assertEq(IERC20(USDC).balanceOf(recipient), before + ONE_USDC);
-        assertEq(IERC20(USDC).balanceOf(address(vault)), 0);
+        deal(USDC, address(vault), ONE_USDC);
+        address to = address(0xCAFE);
+        uint256 before = IUSDC(USDC).balanceOf(to);
+        vault.recoverUsdc(to);
+        assertEq(IUSDC(USDC).balanceOf(to) - before, ONE_USDC);
     }
 }
-

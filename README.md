@@ -1,23 +1,25 @@
 # Wave Protocol
 
-**Multi-agent intent collapse, onchain.** You submit one intent + a USDC budget. Three AI agents
-(Research / Analysis / Execution) explore it in parallel via **Venice AI**, each paying for its own
-inference with **x402** (USDC, settled onchain). Every agent's reasoning is hashed and committed to a
-custom **ERC-7710 caveat enforcer** on **Base Sepolia**, which auto-**collapses** the superposition to
-the highest-confidence winner. With a wallet, the user grants a USDC budget via **ERC-7715** and the
-winning agent redeems it — losers are gated by the enforcer.
+**The onchain AI yield manager.** You set a goal + an amount of idle USDC. Three AI agents
+(Yield / Risk / Liquidity) debate the best yield strategy via **Venice AI**, each paying for its own
+inference with **x402** (USDC, settled onchain) — and **betting more the more confident it is**.
+Their reasoning is hashed and committed to a custom **ERC-7710 caveat enforcer** on **Base Sepolia**,
+which **collapses** to the highest-conviction strategy. The winner then deploys your USDC into
+**Compound V3** — credited to **you**, so you own the position and the yield. The enforcer guarantees
+the AI can only act on consensus (the vault won't deploy otherwise); the protocol takes a small fee.
 
 > Chain: **Base Sepolia (84532)** only. Everything is real and onchain, at ~zero cost.
 
 ## Architecture
 
 ```
-frontend/  Next.js 16 · React 19 · Tailwind v4   (UI + live waveform collapse, :3000)
-backend/   Next.js 14 API routes                 (agents, x402, onchain, SSE, :3001)
-backend/contracts/  Foundry                       (VeniceCollapseEnforcer.sol)
+frontend/  Next.js 16 · React 19 · Tailwind v4   (UI + live debate/collapse + wave.log, :3000)
+backend/   Next.js 14 API routes                 (agents, x402, debate, onchain, SSE, :3001)
+backend/contracts/  Foundry                       (VeniceCollapseEnforcer.sol · WaveStrategyVault.sol)
 ```
 
 - **VeniceCollapseEnforcer** (Base Sepolia): [`0x3ec6F2c470e57f487709b153f77c02851fe864C5`](https://sepolia.basescan.org/address/0x3ec6F2c470e57f487709b153f77c02851fe864C5)
+- **WaveStrategyVault** (Base Sepolia): [`0x7Af8dFB396ce6677B186207957AC9Ec6d0bBE19C`](https://sepolia.basescan.org/address/0x7Af8dFB396ce6677B186207957AC9Ec6d0bBE19C) — supplies to Compound V3, credits the user
 - Data: **Neon** (Postgres) + **Upstash** (Redis pub/sub → SSE)
 
 ## Prerequisites
