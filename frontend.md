@@ -1,4 +1,4 @@
-# WaveAgent — Frontend Build Guide
+# Wave Protocol — Frontend Build Guide
 
 > Phase-by-phase, mirrors `backend.md`. Backend is complete & verified onchain. This wires the
 > existing `/frontend` v0 landing page to it and builds the visual demo.
@@ -67,15 +67,15 @@ error                 { message }
 - `backend/.env.example` — `FRONTEND_ORIGIN`.
 
 **Frontend (rebrand — copy only, structure/animations preserved):**
-- `app/layout.tsx` — metadata → WaveAgent.
-- `components/hero-section.tsx` — "WAVEAGENT" split-flap, tagline, CTA "Run a Collapse" → `/session/new`.
+- `app/layout.tsx` — metadata → Wave Protocol.
+- `components/hero-section.tsx` — "WAVE" split-flap + "Protocol" subtitle, CTA "Run a Collapse" → `/session/new`.
 - `components/signals-section.tsx` → **HOW IT WORKS** (5 steps).
 - `components/work-section.tsx` → **THE STACK** (6 tools, enforcer centerpiece).
 - `components/principles-section.tsx` → **WHY THIS WORKS** (Superposition / Consensus / Pay-per-call / Delegation).
 - `components/colophon-section.tsx` → credits + Basescan link to the enforcer.
 - `components/side-nav.tsx` — labels (Index / How / Stack / Principles / Colophon).
 
-**Commit:** `feat(frontend): rebrand landing to WaveAgent + backend CORS for local wiring`
+**Commit:** `feat(frontend): rebrand landing to Wave Protocol + backend CORS for local wiring`
 
 ---
 

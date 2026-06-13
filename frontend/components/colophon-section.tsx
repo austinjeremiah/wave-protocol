@@ -170,7 +170,7 @@ export function ColophonSection() {
         className="mt-24 pt-8 border-t border-border/20 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
       >
         <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-          © 2025 WaveAgent. Built on Base Sepolia.
+          © 2025 Wave Protocol. Built on Base Sepolia.
         </p>
         <p className="font-mono text-[10px] text-muted-foreground">Three agents. One intent. Onchain collapse.</p>
       </div>

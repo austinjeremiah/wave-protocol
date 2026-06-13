@@ -31,7 +31,7 @@ function buildRequirements(resource: string): PaymentRequirements {
     network: NETWORK,
     maxAmountRequired: priced.maxAmountRequired,
     resource: resource as `${string}://${string}`,
-    description: 'WaveAgent Venice inference (x402-gated)',
+    description: 'Wave Protocol Venice inference (x402-gated)',
     mimeType: 'application/json',
     payTo: getBackendAccount().address,
     maxTimeoutSeconds: 120,

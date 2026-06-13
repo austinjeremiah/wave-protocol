@@ -1,4 +1,4 @@
-# WaveAgent — Backend Build Guide
+# Wave Protocol — Backend Build Guide
 
 > Phase-by-phase. After each phase: **commit + push**, then continue.
 > Backend lives in `/backend` — a standalone Next.js project (API routes only).

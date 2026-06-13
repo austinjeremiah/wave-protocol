@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 export const metadata = {
-  title: 'WaveAgent',
+  title: 'Wave Protocol',
   description: 'Multi-agent coordination on ERC-7710 delegation chains',
 }
 

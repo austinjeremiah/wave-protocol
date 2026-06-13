@@ -1,4 +1,4 @@
-# WaveAgent — Complete Technical Architecture & Implementation Guide
+# Wave Protocol — Complete Technical Architecture & Implementation Guide
 
 > *Three AI agents simultaneously explore possible actions using Venice AI — their private reasoning collapses into one onchain permission, enforced by a custom caveat, settled by 1Shot, visible as a quantum waveform collapsing in real time.*
 
@@ -30,9 +30,9 @@
 
 ## 1. Project Overview
 
-### What WaveAgent Does
+### What Wave Protocol Does
 
-WaveAgent is a multi-agent coordination system built on ERC-7710 delegation chains. A user submits a single high-level intent (e.g. "Research X and give me a decision") with a budget. Three specialist AI agents (Research, Analysis, Execution) simultaneously explore that intent in a quantum superposition. Each agent pays for Venice AI inference via x402 — wallet as identity, no API key. Their private `reasoning_content` is hashed and committed onchain. A custom Solidity caveat enforcer (`VeniceCollapseEnforcer`) reads all three hashes, picks the winner by confidence score, and collapses the superposition. Losing agent delegations are revoked in real time via the 1Shot relayer. The winning agent executes within its delegated scope. The frontend animates the whole collapse as a waveform.
+Wave Protocol is a multi-agent coordination system built on ERC-7710 delegation chains. A user submits a single high-level intent (e.g. "Research X and give me a decision") with a budget. Three specialist AI agents (Research, Analysis, Execution) simultaneously explore that intent in a quantum superposition. Each agent pays for Venice AI inference via x402 — wallet as identity, no API key. Their private `reasoning_content` is hashed and committed onchain. A custom Solidity caveat enforcer (`VeniceCollapseEnforcer`) reads all three hashes, picks the winner by confidence score, and collapses the superposition. Losing agent delegations are revoked in real time via the 1Shot relayer. The winning agent executes within its delegated scope. The frontend animates the whole collapse as a waveform.
 
 ### Hackathon Track Coverage
 
@@ -1038,7 +1038,7 @@ import { encodeFunctionData } from 'viem'
 
 #### `POST /api/session/create`
 
-Creates a new WaveAgent session. Initializes the enforcer contract.
+Creates a new Wave Protocol session. Initializes the enforcer contract.
 
 **Request:**
 ```json
@@ -1779,7 +1779,7 @@ export async function GET(
 
 ### 9.1 User Authentication
 
-WaveAgent does not require a traditional login. The user's Ethereum address is their identity. All actions are tied to the address that connected MetaMask.
+Wave Protocol does not require a traditional login. The user's Ethereum address is their identity. All actions are tied to the address that connected MetaMask.
 
 Session creation requires the caller to provide a valid `userAddress`. The session is bound to that address. No JWT tokens are used for the public demo. If you add account persistence, use `next-auth` with `siwe` (Sign-In With Ethereum).
 
@@ -2689,4 +2689,4 @@ import {
 
 ---
 
-*This document is the complete technical specification for WaveAgent. Build phase by phase. When in doubt, re-read this file.*
+*This document is the complete technical specification for Wave Protocol. Build phase by phase. When in doubt, re-read this file.*

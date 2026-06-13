@@ -18,7 +18,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 const bebasNeue = Bebas_Neue({ weight: "400", subsets: ["latin"], variable: "--font-bebas" })
 
 export const metadata: Metadata = {
-  title: "WaveAgent — Multi-Agent Intent Collapse",
+  title: "Wave Protocol — Multi-Agent Intent Collapse",
   description:
     "Three AI agents explore one intent in superposition. Their reasoning is hashed onchain, and a custom ERC-7710 caveat enforcer collapses the wave to the highest-confidence answer.",
   generator: "v0.app",
