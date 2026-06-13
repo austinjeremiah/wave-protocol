@@ -1,4 +1,4 @@
-import type { Address, Hex } from 'viem'
+import { parseEventLogs, type Address, type Hex, type Log } from 'viem'
 import { getPublicClient, getBackendWalletClient } from './chainService'
 import { VENICE_COLLAPSE_ENFORCER_ADDRESS } from '@/lib/constants'
 
@@ -40,6 +40,20 @@ export const ENFORCER_ABI = [
     ],
   },
   {
+    type: 'function',
+    name: 'getAgentSubmission',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'sessionId', type: 'bytes32' },
+      { name: 'agentId', type: 'uint8' },
+    ],
+    outputs: [
+      { name: 'reasoningHash', type: 'bytes32' },
+      { name: 'confidence', type: 'uint8' },
+      { name: 'submitted', type: 'bool' },
+    ],
+  },
+  {
     type: 'event',
     name: 'WavefunctionCollapsed',
     inputs: [
@@ -78,7 +92,7 @@ export async function initSession(sessionId: Hex, agentCount = 3): Promise<Hex> 
   })
 }
 
-/** Commit one agent's reasoning hash + confidence. The 3rd submit auto-collapses. */
+/** Commit one agent's reasoning hash + confidence. The final submit auto-collapses. */
 export async function submitReasoningHash(params: {
   sessionId: Hex
   agentId: number
@@ -94,7 +108,7 @@ export async function submitReasoningHash(params: {
   })
 }
 
-/** Block until a tx is mined. */
+/** Block until a tx is mined and return its receipt. */
 export async function waitForTx(hash: Hex) {
   return getPublicClient().waitForTransactionReceipt({ hash })
 }
@@ -110,44 +124,50 @@ export async function getSessionOnchain(sessionId: Hex) {
   return { submissionCount, requiredAgents, winnerAgentId, collapsed, initiator }
 }
 
+export async function getAgentSubmissionOnchain(sessionId: Hex, agentId: number) {
+  const [reasoningHash, confidence, submitted] = await getPublicClient().readContract({
+    address: enforcerAddress(),
+    abi: ENFORCER_ABI,
+    functionName: 'getAgentSubmission',
+    args: [sessionId, agentId],
+  })
+  return { reasoningHash, confidence, submitted }
+}
+
 export interface CollapseEvent {
   winnerAgentId: number
   winnerHash: Hex
   winnerConfidence: number
 }
 
-/** Resolve when the contract emits WavefunctionCollapsed for this session. */
-export function waitForCollapse(sessionId: Hex, timeoutMs = 90_000): Promise<CollapseEvent> {
-  const client = getPublicClient()
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      unwatch()
-      reject(new Error(`Collapse timeout after ${timeoutMs}ms for session ${sessionId}`))
-    }, timeoutMs)
-
-    const unwatch = client.watchContractEvent({
-      address: enforcerAddress(),
-      abi: ENFORCER_ABI,
-      eventName: 'WavefunctionCollapsed',
-      args: { sessionId },
-      onLogs: (logs) => {
-        const log = logs.find(
-          (l) => l.args.sessionId?.toLowerCase() === sessionId.toLowerCase()
-        )
-        if (!log) return
-        clearTimeout(timer)
-        unwatch()
-        resolve({
-          winnerAgentId: Number(log.args.winnerAgentId),
-          winnerHash: log.args.winnerHash as Hex,
-          winnerConfidence: Number(log.args.winnerConfidence),
-        })
-      },
-      onError: (err) => {
-        clearTimeout(timer)
-        unwatch()
-        reject(err)
-      },
-    })
+/**
+ * The contract auto-collapses inside the final submitReasoningHash tx, so the
+ * WavefunctionCollapsed event lives in that tx's receipt — parse it directly.
+ * Far more reliable than RPC log filters (public RPCs drop filters between polls).
+ */
+export function parseCollapseFromLogs(logs: Log[]): CollapseEvent | null {
+  const events = parseEventLogs({
+    abi: ENFORCER_ABI,
+    eventName: 'WavefunctionCollapsed',
+    logs,
   })
+  const e = events[0]
+  if (!e) return null
+  return {
+    winnerAgentId: Number(e.args.winnerAgentId),
+    winnerHash: e.args.winnerHash,
+    winnerConfidence: Number(e.args.winnerConfidence),
+  }
+}
+
+/** Fallback: read the collapsed winner straight from contract state. */
+export async function readCollapse(sessionId: Hex): Promise<CollapseEvent> {
+  const s = await getSessionOnchain(sessionId)
+  if (!s.collapsed) throw new Error('Session has not collapsed onchain')
+  const win = await getAgentSubmissionOnchain(sessionId, s.winnerAgentId)
+  return {
+    winnerAgentId: Number(s.winnerAgentId),
+    winnerHash: win.reasoningHash,
+    winnerConfidence: Number(win.confidence),
+  }
 }

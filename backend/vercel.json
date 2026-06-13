@@ -5,7 +5,7 @@
       "maxDuration": 60
     },
     "app/api/session/[sessionId]/stream/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
   }
 }
