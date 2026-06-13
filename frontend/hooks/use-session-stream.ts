@@ -18,10 +18,15 @@ export function useSessionStream(sessionId: string, enabled: boolean) {
     const es = new EventSource(streamUrl(sessionId))
     esRef.current = es
 
-    es.onopen = () => setConnected(true)
+    es.onopen = () => {
+      setConnected(true)
+      console.log(`%c[wave] SSE connected → ${sessionId.slice(0, 12)}…`, "color:#f97316")
+    }
     es.onmessage = (e) => {
       try {
-        setEvents((prev) => [...prev, JSON.parse(e.data) as WaveEvent])
+        const evt = JSON.parse(e.data) as WaveEvent
+        console.log(`%c[wave] ${evt.type}`, "color:#f97316", evt)
+        setEvents((prev) => [...prev, evt])
       } catch {
         /* ignore non-JSON keepalives */
       }

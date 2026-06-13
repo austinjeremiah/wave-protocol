@@ -15,7 +15,42 @@ export const maxDuration = 60
 
 const TERMINAL_OR_RUNNING = ['AGENTS_RUNNING', 'HASHES_SUBMITTED', 'COLLAPSED', 'EXECUTED']
 
+const short = (h: unknown) => (typeof h === 'string' ? `${h.slice(0, 16)}…` : '')
+const trunc = (s: unknown) =>
+  typeof s === 'string' ? (s.length > 72 ? `${s.slice(0, 72)}…` : s) : ''
+
+/** Demo-friendly terminal play-by-play for each streamed event. */
+function logEvent(e: Record<string, unknown>) {
+  switch (e.type) {
+    case 'agents_started':
+      logger.info(`◆ SUPERPOSITION — ${e.agentCount} agents reasoning in parallel (Venice via x402)`)
+      break
+    case 'agent_done':
+      logger.info(`  ✓ agent ${e.agentId} (${e.role})  confidence=${e.confidence}  — ${trunc(e.summary)}`)
+      break
+    case 'hash_submitted':
+      logger.info(`  ↑ agent ${e.agentId} reasoning hash → Base Sepolia  ${short(e.txHash)}`)
+      break
+    case 'hash_confirmed':
+      logger.info(`  ⛓  agent ${e.agentId} hash confirmed onchain`)
+      break
+    case 'wavefunction_collapsed':
+      logger.info(`★ WAVEFUNCTION COLLAPSED → winner = agent ${e.winnerAgentId} (confidence ${e.winnerConfidence})`)
+      break
+    case 'execution_redeemed':
+      logger.info(`  $ winner redeemed delegated USDC  ${short(e.txHash)}`)
+      break
+    case 'execution_complete':
+      logger.info(`◆ SESSION COMPLETE — winner agent ${e.winnerAgentId}`)
+      break
+    case 'error':
+      logger.error(`✗ ${e.message}`)
+      break
+  }
+}
+
 function publish(sessionId: string, event: Record<string, unknown>) {
+  logEvent(event)
   return redis
     .publish(sessionChannel(sessionId), JSON.stringify({ ...event, ts: Date.now() }))
     .catch(() => {})
@@ -41,6 +76,7 @@ export async function POST(
   }
 
   try {
+    logger.info(`▶ RUN ${sessionId.slice(0, 12)}…  intent: "${trunc(session.userIntent)}"`)
     const agents = await getAgentWallets()
     await prisma.session.update({ where: { sessionId }, data: { status: 'AGENTS_RUNNING' } })
     await publish(sessionId, { type: 'agents_started', agentCount: agents.length })

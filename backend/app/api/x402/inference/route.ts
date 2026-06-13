@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
       { status: 402 }
     )
   }
+  logger.info(`  💳 x402 payment verified — payer ${String(verification.payer).slice(0, 12)}… — running Venice`)
 
   // Payment is valid — do the work first, then take payment (don't charge on failure).
   const body = (await req.json().catch(() => ({}))) as {
@@ -120,6 +121,7 @@ export async function POST(req: NextRequest) {
       { status: 402 }
     )
   }
+  logger.info(`  💲 x402 USDC settled onchain — ${String(settlement.transaction).slice(0, 16)}…`)
 
   const res = NextResponse.json({
     content,
