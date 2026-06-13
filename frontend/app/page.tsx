@@ -10,6 +10,7 @@ export default function Page() {
     <main className="relative min-h-screen">
       <SideNav />
       <div className="grid-bg fixed inset-0 opacity-30" aria-hidden="true" />
+      <div className="glow-ambient" aria-hidden="true" />
 
       <div className="relative z-10">
         <HeroSection />

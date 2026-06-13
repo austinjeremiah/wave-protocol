@@ -68,7 +68,7 @@ export function HeroSection() {
         <div className="mt-16 flex items-center gap-8">
           <a
             href="/session/new"
-            className="group inline-flex items-center gap-3 border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:border-accent hover:text-accent transition-all duration-200"
+            className="group glass glass-hover inline-flex items-center gap-3 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:text-accent"
           >
             <ScrambleTextOnHover text="Deploy Your USDC" as="span" duration={0.6} />
             <BitmapChevron className="transition-transform duration-[400ms] ease-in-out group-hover:rotate-45" />
@@ -84,7 +84,8 @@ export function HeroSection() {
 
       {/* Floating info tag */}
       <div className="absolute bottom-8 right-8 md:bottom-12 md:right-12">
-        <div className="border border-border px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="glass inline-flex items-center gap-2 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
           Base Sepolia / Live
         </div>
       </div>

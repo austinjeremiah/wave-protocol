@@ -171,11 +171,8 @@ function SignalCard({
         "hover:-translate-y-2",
       )}
     >
-      {/* Card with paper texture effect */}
-      <div className="relative bg-card border border-border/50 md:border-t md:border-l md:border-r-0 md:border-b-0 p-8">
-        {/* Top torn edge effect */}
-        <div className="absolute -top-px left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
-
+      {/* Frosted glass card */}
+      <div className="glass glass-hover relative p-8">
         {/* Issue number - editorial style */}
         <div className="flex items-baseline justify-between mb-8">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
@@ -194,15 +191,7 @@ function SignalCard({
 
         {/* Description */}
         <p className="font-mono text-xs text-muted-foreground leading-relaxed">{signal.note}</p>
-
-        {/* Bottom right corner fold effect */}
-        <div className="absolute bottom-0 right-0 w-6 h-6 overflow-hidden">
-          <div className="absolute bottom-0 right-0 w-8 h-8 bg-background rotate-45 translate-x-4 translate-y-4 border-t border-l border-border/30" />
-        </div>
       </div>
-
-      {/* Shadow/depth layer */}
-      <div className="absolute inset-0 -z-10 translate-x-1 translate-y-1 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </article>
   )
 }

@@ -158,9 +158,9 @@ function WorkCard({
     <article
       ref={cardRef}
       className={cn(
-        "group relative border border-border/40 p-5 flex flex-col justify-between transition-all duration-500 cursor-pointer overflow-hidden",
+        "group glass glass-hover relative p-5 flex flex-col justify-between cursor-pointer overflow-hidden",
         experiment.span,
-        isActive && "border-accent/60",
+        isActive && "!border-accent/60 shadow-[0_0_28px_oklch(0.7_0.2_45/0.14)]",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
