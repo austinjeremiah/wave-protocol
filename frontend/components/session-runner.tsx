@@ -11,10 +11,13 @@ import {
   type SessionRecord,
 } from "@/lib/wave-api"
 import { WaveCollapse } from "@/components/wave-collapse"
+import { WaveField } from "@/components/wave-field"
+import { DebateFloor } from "@/components/debate-floor"
+import { WaveTerminal } from "@/components/wave-terminal"
 import type { AgentView } from "@/components/agent-orb"
 
 type Mode = "loading" | "live" | "replay" | "error"
-type Phase = "connecting" | "reasoning" | "collapsed" | "error"
+type Phase = "connecting" | "reasoning" | "debating" | "collapsed" | "executing" | "error"
 
 export function SessionRunner({ sessionId }: { sessionId: string }) {
   const startedRef = useRef(false)
@@ -22,6 +25,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
   const [stored, setStored] = useState<SessionRecord | null>(null)
   const [intent, setIntent] = useState("")
   const [runError, setRunError] = useState<string | null>(null)
+  const [needsRun, setNeedsRun] = useState(false)
 
   // Decide on mount: replay a finished session, watch an in-flight one, or kick off a new run.
   useEffect(() => {
@@ -35,10 +39,12 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
           setStored(s)
           setMode("replay")
         } else if (["AGENTS_RUNNING", "HASHES_SUBMITTED"].includes(s.status)) {
-          setMode("live")
+          setMode("live") // already in flight — just watch
         } else {
+          // New session: go live, but DON'T run yet — wait for the stream to be subscribed
+          // (the `ready` event) so we don't lose the early events to fire-and-forget pub/sub.
           setMode("live")
-          runSession(sessionId).catch((e) => setRunError((e as Error).message))
+          setNeedsRun(true)
         }
       } catch (e) {
         setRunError((e as Error).message)
@@ -47,7 +53,18 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
     })()
   }, [sessionId])
 
-  const { events, connected } = useSessionStream(sessionId, mode === "live")
+  const { events, connected, ready } = useSessionStream(sessionId, mode === "live")
+
+  // Trigger the run ONLY once the SSE stream is subscribed — fixes the race where the run
+  // published agents_started/reasoning before the browser was listening (so nothing animated).
+  const runStartedRef = useRef(false)
+  useEffect(() => {
+    if (mode === "live" && needsRun && ready && !runStartedRef.current) {
+      runStartedRef.current = true
+      console.log("%c[wave] stream ready → starting run", "color:#f97316")
+      runSession(sessionId).catch((e) => setRunError((e as Error).message))
+    }
+  }, [mode, needsRun, ready, sessionId])
 
   // Once the live run collapses, pull the full persisted record (for the winner's `action`).
   const fetchedFinalRef = useRef(false)
@@ -59,7 +76,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
     }
   }, [mode, collapsedLive, sessionId])
 
-  const { agents, winnerId, winner, phase, errored } = useMemo(
+  const { agents, winnerId, winner, phase, errored, supplied, supplyTxHash } = useMemo(
     () => (mode === "replay" ? deriveStored(stored) : deriveLive(events)),
     [mode, stored, events],
   )
@@ -69,11 +86,15 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
   const winnerAction =
     stored?.agentResults?.find((r) => r.agentId === winnerId)?.structuredOutput?.action ?? null
 
+  // The terminal feeds off live SSE events; on replay we synthesize them from the stored record.
+  const displayEvents = mode === "replay" ? eventsFromStored(stored) : events
+
   return (
     <main className="relative min-h-screen px-6 py-12 md:px-12">
       <div className="grid-bg fixed inset-0 opacity-20" aria-hidden />
 
-      <div className="relative z-10 mx-auto max-w-6xl">
+      <div className="relative z-10 mx-auto max-w-7xl lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+        <div className="min-w-0">
         <header className="mb-10">
           <a
             href="/"
@@ -87,7 +108,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
                 {statusLine(mode, phase, connected)}
               </span>
               <h1 className="mt-3 font-[var(--font-bebas)] text-5xl md:text-7xl tracking-tight leading-none">
-                {collapsed ? "WAVE COLLAPSED" : "SUPERPOSITION"}
+                {collapsed ? "WAVE COLLAPSED" : phase === "debating" ? "DEBATE ROUND" : "SUPERPOSITION"}
               </h1>
             </div>
             <code className="font-mono text-[10px] text-muted-foreground/50">
@@ -107,11 +128,48 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
           </p>
         )}
 
+        {/* Hero: the live wave-interference field — superposition collapsing to the winner. */}
+        <div className="relative mb-8 h-[42vh] min-h-[280px] overflow-hidden border border-border/40 bg-[oklch(0.06_0_0)]">
+          <WaveField agents={agents} collapsed={collapsed} winnerId={winnerId} supplied={supplied} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between p-4">
+            <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+              {collapsed
+                ? `★ collapsed → ${String((winnerId ?? 0) + 1).padStart(2, "0")} ${winnerAgent?.role ?? ""}`
+                : phase === "debating"
+                  ? "debate round · conviction bets onchain"
+                  : "superposition · 3 waves interfering"}
+            </span>
+            {!collapsed ? (
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                {phase === "debating" ? "agents critiquing peers…" : phase === "reasoning" ? "agents reasoning…" : connected ? "linked" : "linking…"}
+              </span>
+            ) : (
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+                {winner?.winnerConfidence ?? winnerAgent?.confidence} conf · onchain
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Debate Floor — the A2A round made visible (chairs, arguments, conviction stakes). */}
+        <DebateFloor agents={agents} active={phase === "debating"} />
+
         <WaveCollapse agents={agents} winnerId={winnerId} collapsed={collapsed} />
 
         {collapsed && winnerAgent && (
-          <ResultCard winnerAgent={winnerAgent} winnerHash={winner?.winnerHash ?? null} action={winnerAction} />
+          <ResultCard
+            winnerAgent={winnerAgent}
+            winnerHash={winner?.winnerHash ?? null}
+            action={winnerAction}
+            supplyTxHash={supplyTxHash ?? stored?.aaveSupplyTx ?? null}
+          />
         )}
+        </div>
+
+        {/* Live log — every milestone + one-click Basescan links (no backend terminal needed). */}
+        <aside className="mt-8 h-[420px] lg:mt-0 lg:sticky lg:top-12 lg:h-[calc(100vh-6rem)]">
+          <WaveTerminal events={displayEvents} connected={connected} />
+        </aside>
       </div>
     </main>
   )
@@ -121,10 +179,12 @@ function ResultCard({
   winnerAgent,
   winnerHash,
   action,
+  supplyTxHash,
 }: {
   winnerAgent: AgentView
   winnerHash: string | null
   action: string | null
+  supplyTxHash: string | null
 }) {
   return (
     <section className="mt-10 border border-accent/40 bg-card p-8">
@@ -176,6 +236,26 @@ function ResultCard({
         )}
       </div>
 
+      {/* Compound V3 supply proof */}
+      {supplyTxHash && (
+        <div className="mt-6 border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
+          <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-400">
+            Strategy Executed · Compound V3
+          </span>
+          <p className="mt-1 font-mono text-[10px] text-muted-foreground/70 leading-relaxed">
+            Delegated USDC supplied to Compound V3 on Base Sepolia — earning real yield. The losers&#39; delegations are permanently gated by the enforcer.
+          </p>
+          <a
+            href={basescanTx(supplyTxHash)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block font-mono text-[10px] uppercase tracking-widest text-emerald-400 hover:underline"
+          >
+            View Compound supply tx ↗
+          </a>
+        </div>
+      )}
+
       <a
         href="/session/new"
         className="mt-8 inline-flex border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest hover:border-accent hover:text-accent transition-all"
@@ -199,6 +279,9 @@ function deriveLive(events: WaveEvent[]) {
         status: "idle",
         reasoning: "",
         confidence: null,
+        round1Confidence: null,
+        convictionBet: null,
+        critiqueText: null,
         summary: null,
         txHash: null,
       }
@@ -210,6 +293,8 @@ function deriveLive(events: WaveEvent[]) {
   let winner: { winnerAgentId: number; winnerHash: string; winnerConfidence: number } | null = null
   let phase: Phase = "connecting"
   let errored: string | null = null
+  let supplied = false
+  let supplyTxHash: string | null = null
 
   for (const e of events) {
     switch (e.type) {
@@ -226,11 +311,31 @@ function deriveLive(events: WaveEvent[]) {
       case "agent_done": {
         const a = ensure(e.agentId)
         a.status = "done"
+        a.round1Confidence = e.confidence
         a.confidence = e.confidence
         a.summary = e.summary
         a.role = e.role
         break
       }
+      case "debate_started":
+        for (const a of map.values()) if (a.status === "done") a.status = "debating"
+        phase = "debating"
+        break
+      case "agent_debate_reasoning": {
+        const a = ensure(e.agentId)
+        if (a.status !== "debating") a.status = "debating"
+        break
+      }
+      case "confidence_shift": {
+        const a = ensure(e.agentId)
+        a.confidence = e.to
+        a.convictionBet = e.convictionBetUsdc
+        a.critiqueText = e.critique
+        break
+      }
+      case "debate_complete":
+        for (const a of map.values()) if (a.status === "debating") a.status = "done"
+        break
       case "hash_submitted":
       case "hash_confirmed":
         ensure(e.agentId).txHash = e.txHash
@@ -238,6 +343,13 @@ function deriveLive(events: WaveEvent[]) {
       case "wavefunction_collapsed":
         winner = { winnerAgentId: e.winnerAgentId, winnerHash: e.winnerHash, winnerConfidence: e.winnerConfidence }
         phase = "collapsed"
+        break
+      case "execution_started":
+        phase = "executing"
+        break
+      case "execution_supplied":
+        supplied = true
+        supplyTxHash = e.txHash
         break
       case "error":
         errored = e.message
@@ -255,12 +367,14 @@ function deriveLive(events: WaveEvent[]) {
     winner,
     phase,
     errored,
+    supplied,
+    supplyTxHash,
   }
 }
 
 function deriveStored(s: SessionRecord | null) {
   if (!s) {
-    return { agents: [] as AgentView[], winnerId: null, winner: null, phase: "connecting" as Phase, errored: null }
+    return { agents: [] as AgentView[], winnerId: null, winner: null, phase: "connecting" as Phase, errored: null, supplied: false, supplyTxHash: null }
   }
   const agents: AgentView[] = (s.agentResults ?? [])
     .map((r) => ({
@@ -269,6 +383,9 @@ function deriveStored(s: SessionRecord | null) {
       status: "done" as const,
       reasoning: r.reasoningContent ?? "",
       confidence: r.confidence,
+      round1Confidence: r.round1Confidence ?? null,
+      convictionBet: r.convictionBetUsdc ?? null,
+      critiqueText: r.critiqueText ?? null,
       summary: r.structuredOutput?.summary ?? null,
       txHash: r.hashTxHash ?? null,
     }))
@@ -284,14 +401,85 @@ function deriveStored(s: SessionRecord | null) {
         }
       : null
 
-  return { agents, winnerId, winner, phase: (winner ? "collapsed" : "reasoning") as Phase, errored: null }
+  return {
+    agents,
+    winnerId,
+    winner,
+    phase: (winner ? "collapsed" : "reasoning") as Phase,
+    errored: null,
+    supplied: !!s.aaveSupplyTx,
+    supplyTxHash: s.aaveSupplyTx ?? null,
+  }
+}
+
+/** Rebuild a terminal-feed event list from a persisted session (replay / reload). */
+function eventsFromStored(s: SessionRecord | null): WaveEvent[] {
+  if (!s || !s.agentResults?.length) return []
+  const out: WaveEvent[] = []
+  const sorted = [...s.agentResults].sort((a, b) => a.agentId - b.agentId)
+
+  out.push({ type: "agents_started", agentCount: sorted.length, ts: 0 })
+  for (const r of sorted) {
+    out.push({
+      type: "agent_done",
+      agentId: r.agentId,
+      role: r.role,
+      confidence: r.round1Confidence ?? r.confidence,
+      summary: r.structuredOutput?.summary ?? "",
+      action: r.structuredOutput?.action ?? "",
+      ts: 0,
+    })
+  }
+
+  const debated = sorted.some((r) => r.round1Confidence != null && r.revisedConfidence != null)
+  if (debated) {
+    out.push({ type: "debate_started", roundNumber: 2, ts: 0 })
+    for (const r of sorted) {
+      if (r.round1Confidence != null && r.revisedConfidence != null) {
+        out.push({
+          type: "confidence_shift",
+          agentId: r.agentId,
+          from: r.round1Confidence,
+          to: r.revisedConfidence,
+          convictionBetUsdc: r.convictionBetUsdc ?? 0,
+          critique: r.critiqueText ?? "",
+          revisedAction: "",
+          ts: 0,
+        })
+      }
+    }
+    out.push({ type: "debate_complete", results: [], ts: 0 })
+  }
+
+  for (const r of sorted) {
+    if (r.hashTxHash) out.push({ type: "hash_submitted", agentId: r.agentId, txHash: r.hashTxHash, ts: 0 })
+  }
+  if (s.winnerAgentId != null) {
+    const w = sorted.find((r) => r.agentId === s.winnerAgentId)
+    out.push({
+      type: "wavefunction_collapsed",
+      winnerAgentId: s.winnerAgentId,
+      winnerHash: s.winnerHash ?? "",
+      winnerConfidence: w?.confidence ?? 0,
+      ts: 0,
+    })
+  }
+  if (s.strategyVaultTx)
+    out.push({ type: "execution_redeemed", winnerAgentId: s.winnerAgentId ?? 0, txHash: s.strategyVaultTx, viaDelegation: false, ts: 0 })
+  if (s.aaveSupplyTx)
+    out.push({ type: "execution_supplied", winnerAgentId: s.winnerAgentId ?? 0, txHash: s.aaveSupplyTx, protocol: "Compound V3", vaultAddress: "", ts: 0 })
+  if (s.winnerAgentId != null) out.push({ type: "execution_complete", winnerAgentId: s.winnerAgentId, ts: 0 })
+
+  return out
 }
 
 function statusLine(mode: Mode, phase: Phase, connected: boolean) {
   if (mode === "loading") return "Loading session…"
   if (mode === "error") return "Error"
+  if (phase === "executing") return "Executing strategy → Compound V3"
   if (phase === "collapsed") return "Collapsed / Onchain"
   if (mode === "replay") return "Result"
+  if (phase === "debating") return "Agents debating — conviction bets live"
   if (phase === "reasoning") return "Agents reasoning…"
   return connected ? "Connected / Awaiting agents" : "Connecting…"
 }

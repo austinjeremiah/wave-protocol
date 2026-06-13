@@ -21,6 +21,8 @@ model Session {
   winnerAgentId     Int?
   winnerHash        String?
   collapseTaskId    String?
+  strategyVaultTx   String?   // tx: winner delegation redeem → USDC to WaveStrategyVault
+  aaveSupplyTx      String?   // tx: vault.executeStrategy → USDC supplied to Compound V3
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -32,8 +34,10 @@ enum SessionStatus {
   PENDING
   DELEGATION_GRANTED
   AGENTS_RUNNING
+  AGENTS_DEBATING
   HASHES_SUBMITTED
   COLLAPSED
+  EXECUTING
   EXECUTED
   FAILED
 }
@@ -47,6 +51,10 @@ model AgentResult {
   reasoningContent   String   @db.Text
   reasoningHash      String
   confidence         Int
+  round1Confidence   Int?     // pre-debate confidence (Round 1)
+  revisedConfidence  Int?     // post-debate confidence (Round 2) — submitted onchain
+  critiqueText       String?  @db.Text // what this agent said about peers in Round 2
+  convictionBetUsdc  Float?   // x402 amount paid in conviction bet (Round 2)
   structuredOutput   Json
   hashTaskId         String?
   hashTxHash         String?

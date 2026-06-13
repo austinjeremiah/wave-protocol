@@ -23,6 +23,12 @@ export const AGENT_BUDGET_SPLIT = [0.4, 0.35, 0.25] as const
 /** Agent roles, indexed by agentId. */
 export const AGENT_ROLES = ['Research', 'Analysis', 'Execution'] as const
 
+/** WaveStrategyVault — deployed to Base Sepolia; accepts delegated USDC and supplies to Compound V3. */
+export const WAVE_STRATEGY_VAULT_ADDRESS = process.env.WAVE_STRATEGY_VAULT_ADDRESS as `0x${string}` | undefined
+
+/** Compound V3 Comet on Base Sepolia (baseToken = Circle USDC). */
+export const COMPOUND_COMET_ADDRESS = (process.env.COMPOUND_COMET_ADDRESS ?? '0x571621Ce60Cebb0c1D442B5afb38B1663C6Bf017') as `0x${string}`
+
 /**
  * MetaMask DelegationManager is NOT hardcoded — it is resolved per-chain at runtime via
  * getSmartAccountsEnvironment(CHAIN_ID) from @metamask/smart-accounts-kit (see Phase 4).

@@ -65,12 +65,18 @@ export interface SessionRecord {
   status: string
   winnerAgentId: number | null
   winnerHash: string | null
+  strategyVaultTx: string | null
+  aaveSupplyTx: string | null
   agentResults: {
     agentId: number
     role: string
     reasoningContent: string
     reasoningHash: string
     confidence: number
+    round1Confidence: number | null
+    revisedConfidence: number | null
+    critiqueText: string | null
+    convictionBetUsdc: number | null
     structuredOutput: { summary?: string; action?: string; reasoning?: string } | null
     hashTxHash: string | null
   }[]
@@ -80,10 +86,19 @@ export interface SessionRecord {
 export type WaveEvent =
   | { type: "agents_started"; agentCount: number; ts: number }
   | { type: "agent_reasoning"; agentId: number; chunk: string; ts: number }
-  | { type: "agent_done"; agentId: number; role: string; confidence: number; summary: string; ts: number }
+  | { type: "agent_done"; agentId: number; role: string; confidence: number; summary: string; action: string; ts: number }
+  // Round 2 — A2A debate
+  | { type: "debate_started"; roundNumber: number; ts: number }
+  | { type: "agent_debate_reasoning"; agentId: number; chunk: string; ts: number }
+  | { type: "confidence_shift"; agentId: number; from: number; to: number; convictionBetUsdc: number; critique: string; revisedAction: string; ts: number }
+  | { type: "debate_complete"; results: { agentId: number; from: number; to: number; convictionBetUsdc: number }[]; ts: number }
+  // Onchain collapse
   | { type: "hash_submitted"; agentId: number; txHash: string; ts: number }
   | { type: "hash_confirmed"; agentId: number; txHash: string; ts: number }
   | { type: "wavefunction_collapsed"; winnerAgentId: number; winnerHash: string; winnerConfidence: number; ts: number }
-  | { type: "execution_redeemed"; winnerAgentId: number; txHash: string; ts: number }
+  // Strategy execution
+  | { type: "execution_started"; winnerAgentId: number; ts: number }
+  | { type: "execution_redeemed"; winnerAgentId: number; txHash: string; viaDelegation: boolean; ts: number }
+  | { type: "execution_supplied"; winnerAgentId: number; txHash: string; protocol: string; vaultAddress: string; ts: number }
   | { type: "execution_complete"; winnerAgentId: number; ts: number }
   | { type: "error"; message: string; ts: number }

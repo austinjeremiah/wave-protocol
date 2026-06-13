@@ -4,41 +4,62 @@ import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
 import { redis, sessionChannel } from '@/lib/redis'
 import { getAgentWallets } from '@/services/agentWalletService'
-import { runAgent } from '@/services/veniceAgentService'
+import { runAgent, runAgentDebate } from '@/services/veniceAgentService'
 import { runCollapse } from '@/services/collapseOrchestratorService'
 import { hashReasoningContent } from '@/services/delegationService'
-import { redeemWinnerDelegation } from '@/services/executionService'
+import { redeemWinnerDelegation, executeVaultStrategy, fundVaultFromTreasury } from '@/services/executionService'
+import { waitForTx } from '@/services/enforcerService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 120
 
-const TERMINAL_OR_RUNNING = ['AGENTS_RUNNING', 'HASHES_SUBMITTED', 'COLLAPSED', 'EXECUTED']
+const TERMINAL_OR_RUNNING = ['AGENTS_RUNNING', 'AGENTS_DEBATING', 'HASHES_SUBMITTED', 'COLLAPSED', 'EXECUTING', 'EXECUTED']
 
 const short = (h: unknown) => (typeof h === 'string' ? `${h.slice(0, 16)}…` : '')
 const trunc = (s: unknown) =>
   typeof s === 'string' ? (s.length > 72 ? `${s.slice(0, 72)}…` : s) : ''
 
-/** Demo-friendly terminal play-by-play for each streamed event. */
 function logEvent(e: Record<string, unknown>) {
   switch (e.type) {
     case 'agents_started':
-      logger.info(`◆ SUPERPOSITION — ${e.agentCount} agents reasoning in parallel (Venice via x402)`)
+      logger.info(`◆ SUPERPOSITION — ${e.agentCount} agents reasoning in parallel (Venice × x402)`)
       break
     case 'agent_done':
-      logger.info(`  ✓ agent ${e.agentId} (${e.role})  confidence=${e.confidence}  — ${trunc(e.summary)}`)
+      logger.info(`  ✓ R1 agent ${e.agentId} (${e.role})  confidence=${e.confidence}  — ${trunc(e.summary)}`)
+      break
+    case 'debate_started':
+      logger.info(`⚡ DEBATE ROUND — agents critiquing peers + placing conviction bets (x402 scaled)`)
+      break
+    case 'confidence_shift':
+      logger.info(
+        `  ↕  agent ${e.agentId} confidence: ${e.from} → ${e.to}  (conviction bet: $${e.convictionBetUsdc})`
+      )
+      break
+    case 'debate_complete':
+      logger.info(`  ✓ DEBATE COMPLETE — revised confidences locked`)
       break
     case 'hash_submitted':
-      logger.info(`  ↑ agent ${e.agentId} reasoning hash → Base Sepolia  ${short(e.txHash)}`)
+      logger.info(`  ↑ agent ${e.agentId} hash → Base Sepolia  ${short(e.txHash)}`)
       break
     case 'hash_confirmed':
       logger.info(`  ⛓  agent ${e.agentId} hash confirmed onchain`)
       break
     case 'wavefunction_collapsed':
-      logger.info(`★ WAVEFUNCTION COLLAPSED → winner = agent ${e.winnerAgentId} (confidence ${e.winnerConfidence})`)
+      logger.info(
+        `★ WAVEFUNCTION COLLAPSED → winner = agent ${e.winnerAgentId} (revised confidence ${e.winnerConfidence})`
+      )
+      break
+    case 'execution_started':
+      logger.info(`  ⚙  executing winner strategy — USDC → WaveStrategyVault → Compound V3`)
       break
     case 'execution_redeemed':
-      logger.info(`  $ winner redeemed delegated USDC  ${short(e.txHash)}`)
+      logger.info(
+        `  $ ${e.viaDelegation ? 'delegation redeemed (user USDC)' : 'treasury funded'} → vault  ${short(e.txHash)}`
+      )
+      break
+    case 'execution_supplied':
+      logger.info(`  🌊 USDC supplied to Compound V3 — aUSDC minted  ${short(e.txHash)}`)
       break
     case 'execution_complete':
       logger.info(`◆ SESSION COMPLETE — winner agent ${e.winnerAgentId}`)
@@ -57,10 +78,13 @@ function publish(sessionId: string, event: Record<string, unknown>) {
 }
 
 /**
- * The collapse run: 3 agents reason in parallel (Venice) → hashes committed onchain →
- * contract auto-collapses → results persisted. Every step is published to Redis so the
- * SSE stream can animate it live. (Grant-delegation is optional — the collapse mechanism
- * doesn't depend on the sub-delegations existing.)
+ * V2 collapse run — 2-round A2A debate + conviction bets + Compound V3 strategy execution.
+ *
+ * Round 1: 3 agents reason independently (Venice × x402, flat $0.01 each).
+ * Round 2: each agent sees all peers' proposals, critiques them + revises confidence.
+ *          conviction bet = x402 price scaled by round 1 confidence (higher belief = bigger bet).
+ * Collapse: revised confidences submitted onchain → VeniceCollapseEnforcer picks winner.
+ * Execution (wallet path): winner's delegation redeems → USDC → WaveStrategyVault → Compound V3.
  */
 export async function POST(
   _req: NextRequest,
@@ -81,7 +105,7 @@ export async function POST(
     await prisma.session.update({ where: { sessionId }, data: { status: 'AGENTS_RUNNING' } })
     await publish(sessionId, { type: 'agents_started', agentCount: agents.length })
 
-    // All agents think in parallel; stream each one's reasoning + result.
+    // ── ROUND 1: independent reasoning ──────────────────────────────────────────
     const agentResults = await Promise.all(
       agents.map((a) =>
         runAgent({
@@ -96,18 +120,60 @@ export async function POST(
             role: res.role,
             confidence: res.confidence,
             summary: res.output.summary,
+            action: res.output.action,
           })
           return res
         })
       )
     )
 
+    // ── ROUND 2: A2A debate + conviction bets ────────────────────────────────────
+    await prisma.session.update({ where: { sessionId }, data: { status: 'AGENTS_DEBATING' } })
+    await publish(sessionId, { type: 'debate_started', roundNumber: 2 })
+
+    const debateResults = await Promise.all(
+      agents.map((a) =>
+        runAgentDebate({
+          agentId: a.agentId,
+          userIntent: session.userIntent,
+          round1Results: agentResults,
+          onReasoning: (chunk) =>
+            void publish(sessionId, { type: 'agent_debate_reasoning', agentId: a.agentId, chunk }),
+        }).then((res) => {
+          void publish(sessionId, {
+            type: 'confidence_shift',
+            agentId: res.agentId,
+            from: res.round1Confidence,
+            to: res.revisedConfidence,
+            convictionBetUsdc: res.convictionBetUsdc,
+            critique: res.critiqueText.slice(0, 300),
+            revisedAction: res.revisedAction,
+          })
+          return res
+        })
+      )
+    )
+
+    const revisedConfidences: Record<number, number> = {}
+    for (const d of debateResults) revisedConfidences[d.agentId] = d.revisedConfidence
+
+    await publish(sessionId, {
+      type: 'debate_complete',
+      results: debateResults.map((d) => ({
+        agentId: d.agentId,
+        from: d.round1Confidence,
+        to: d.revisedConfidence,
+        convictionBetUsdc: d.convictionBetUsdc,
+      })),
+    })
+
+    // ── COLLAPSE: submit revised confidences onchain ──────────────────────────────
     await prisma.session.update({ where: { sessionId }, data: { status: 'HASHES_SUBMITTED' } })
 
-    // Commit hashes onchain + wait for the contract's WavefunctionCollapsed event.
     const collapse = await runCollapse({
       sessionId,
       agentResults,
+      revisedConfidences,
       onHashSubmitted: (agentId, txHash) =>
         void publish(sessionId, { type: 'hash_submitted', agentId, txHash }),
       onHashConfirmed: (agentId, txHash) =>
@@ -121,10 +187,11 @@ export async function POST(
       winnerConfidence: collapse.winnerConfidence,
     })
 
-    // Persist all agent results + the winner, atomically.
+    // ── PERSIST ───────────────────────────────────────────────────────────────────
     await prisma.$transaction([
-      ...agentResults.map((r) =>
-        prisma.agentResult.upsert({
+      ...agentResults.map((r) => {
+        const debate = debateResults.find((d) => d.agentId === r.agentId)
+        return prisma.agentResult.upsert({
           where: { sessionId_agentId: { sessionId, agentId: r.agentId } },
           create: {
             sessionId,
@@ -132,55 +199,108 @@ export async function POST(
             role: r.role,
             reasoningContent: r.reasoningContent,
             reasoningHash: hashReasoningContent(r.reasoningContent),
-            confidence: r.confidence,
-            structuredOutput: r.output as any,
+            confidence: revisedConfidences[r.agentId] ?? r.confidence,
+            round1Confidence: r.confidence,
+            revisedConfidence: debate?.revisedConfidence ?? null,
+            critiqueText: debate?.critiqueText ?? null,
+            convictionBetUsdc: debate?.convictionBetUsdc ?? null,
+            structuredOutput: r.output as never,
             hashTxHash: collapse.hashTxHashes[r.agentId] ?? null,
           },
           update: {
-            reasoningContent: r.reasoningContent,
-            confidence: r.confidence,
-            structuredOutput: r.output as any,
+            confidence: revisedConfidences[r.agentId] ?? r.confidence,
+            round1Confidence: r.confidence,
+            revisedConfidence: debate?.revisedConfidence ?? null,
+            critiqueText: debate?.critiqueText ?? null,
+            convictionBetUsdc: debate?.convictionBetUsdc ?? null,
+            structuredOutput: r.output as never,
             hashTxHash: collapse.hashTxHashes[r.agentId] ?? null,
           },
         })
-      ),
+      }),
       prisma.session.update({
         where: { sessionId },
         data: {
-          status: 'EXECUTED',
+          status: 'EXECUTING',
           winnerAgentId: collapse.winnerAgentId,
           winnerHash: collapse.winnerHash,
         },
       }),
     ])
 
-    // F3b — if the user granted a wallet delegation, redeem the winner's context to actually
-    // spend the delegated USDC (gated by the enforcer). Best-effort: never breaks the collapse.
+    // ── EXECUTION: winner's USDC → vault → Compound V3 (real yield) ───────────────
+    // Always runs so the strategy execution is demo-reliable. If the user granted a funded,
+    // deployed ERC-7715 delegation, we redeem THEIR USDC (the real ERC-7710 story); otherwise
+    // the backend treasury funds the vault so the Compound V3 supply still happens for real.
     try {
+      const vaultAddress = process.env.WAVE_STRATEGY_VAULT_ADDRESS
+      if (!vaultAddress) throw new Error('WAVE_STRATEGY_VAULT_ADDRESS not set')
+
+      await publish(sessionId, { type: 'execution_started', winnerAgentId: collapse.winnerAgentId })
+
       const granted = session.agentDelegations as unknown as
         | { agentId: number; permissionContext: Hex }[]
         | null
       const winnerCtx = Array.isArray(granted)
         ? granted.find((c) => c.agentId === collapse.winnerAgentId)?.permissionContext
         : undefined
+
+      // Step 1: get USDC into the vault. Recipient MUST be the vault so it can supply.
+      let fundingTx: Hex
+      let viaDelegation = false
       if (winnerCtx) {
-        const winnerAddr = agents.find((a) => a.agentId === collapse.winnerAgentId)!.address
-        const redeemTx = await redeemWinnerDelegation({
-          winnerContext: winnerCtx,
-          recipient: winnerAddr,
-          amountUsdc: 0.05,
-        })
-        await publish(sessionId, {
-          type: 'execution_redeemed',
-          winnerAgentId: collapse.winnerAgentId,
-          txHash: redeemTx,
-        })
-        logger.info({ sessionId, redeemTx }, 'winner delegation redeemed')
+        try {
+          fundingTx = await redeemWinnerDelegation({
+            winnerContext: winnerCtx,
+            recipient: vaultAddress as `0x${string}`,
+            amountUsdc: 0.05,
+          })
+          viaDelegation = true
+        } catch (e) {
+          logger.warn(
+            `  ⚠ delegation redeem reverted (${(e as Error).message.split('\n')[0].slice(0, 90)}) — funding vault from treasury`
+          )
+          fundingTx = await fundVaultFromTreasury({ amountUsdc: 0.05 })
+        }
+      } else {
+        fundingTx = await fundVaultFromTreasury({ amountUsdc: 0.05 })
       }
+      await publish(sessionId, {
+        type: 'execution_redeemed',
+        winnerAgentId: collapse.winnerAgentId,
+        txHash: fundingTx,
+        viaDelegation,
+      })
+
+      // Wait for funding to mine — vault.executeStrategy reads balanceOf(vault).
+      await waitForTx(fundingTx)
+
+      // Step 2: vault supplies its USDC to Compound V3 → cUSDC minted, earning yield.
+      const supplyTx = await executeVaultStrategy({
+        sessionId,
+        winnerAgentId: collapse.winnerAgentId,
+      })
+      await publish(sessionId, {
+        type: 'execution_supplied',
+        winnerAgentId: collapse.winnerAgentId,
+        txHash: supplyTx,
+        protocol: 'Compound V3',
+        vaultAddress,
+      })
+      await waitForTx(supplyTx)
+      await prisma.session.update({
+        where: { sessionId },
+        data: { strategyVaultTx: fundingTx, aaveSupplyTx: supplyTx },
+      })
+      logger.info(
+        { sessionId, fundingTx, supplyTx, viaDelegation },
+        `strategy executed — USDC supplied to Compound V3 ${viaDelegation ? '(via delegation)' : '(via treasury)'}`
+      )
     } catch (e) {
-      logger.warn({ err: (e as Error).message, sessionId }, 'winner redemption skipped')
+      logger.warn({ err: (e as Error).message, sessionId }, 'strategy execution failed')
     }
 
+    await prisma.session.update({ where: { sessionId }, data: { status: 'EXECUTED' } })
     await publish(sessionId, { type: 'execution_complete', winnerAgentId: collapse.winnerAgentId })
     logger.info({ sessionId, winner: collapse.winnerAgentId }, 'collapse complete')
 

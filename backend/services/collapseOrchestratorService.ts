@@ -24,10 +24,12 @@ export interface CollapseResult extends CollapseEvent {
 export async function runCollapse(params: {
   sessionId: Hex
   agentResults: AgentRunResult[]
+  /** If provided, these revised confidences (from debate round) override Round 1. */
+  revisedConfidences?: Record<number, number>
   onHashSubmitted?: (agentId: number, txHash: Hex) => void
   onHashConfirmed?: (agentId: number, txHash: Hex) => void
 }): Promise<CollapseResult> {
-  const { sessionId, agentResults, onHashSubmitted, onHashConfirmed } = params
+  const { sessionId, agentResults, revisedConfidences, onHashSubmitted, onHashConfirmed } = params
 
   const hashTxHashes: Hex[] = []
   let lastReceipt: Awaited<ReturnType<typeof waitForTx>> | undefined
@@ -36,11 +38,13 @@ export async function runCollapse(params: {
   const ordered = [...agentResults].sort((a, b) => a.agentId - b.agentId)
   for (const result of ordered) {
     const reasoningHash = hashReasoningContent(result.reasoningContent)
+    // Use revised confidence from debate if available — this is what hits the contract.
+    const confidence = revisedConfidences?.[result.agentId] ?? result.confidence
     const txHash = await submitReasoningHash({
       sessionId,
       agentId: result.agentId,
       reasoningHash,
-      confidence: result.confidence,
+      confidence,
     })
     onHashSubmitted?.(result.agentId, txHash)
     lastReceipt = await waitForTx(txHash)

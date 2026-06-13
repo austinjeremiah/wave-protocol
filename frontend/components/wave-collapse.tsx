@@ -23,15 +23,20 @@ export function WaveCollapse({
         {agents.map((a) => {
           const isWinner = collapsed && winnerId === a.agentId
           const dimmed = collapsed && !isWinner
-          const pulsing = a.status === "thinking" && !collapsed
+          const pulsing = (a.status === "thinking" || a.status === "debating") && !collapsed
+          // Debate phase: faster pulse + slightly brighter to show "in flux"
+          const debating = a.status === "debating" && !collapsed
           return (
             <motion.div
               key={a.agentId}
-              className={cn("h-1 flex-1", isWinner ? "bg-accent" : dimmed ? "bg-border" : "bg-accent/40")}
-              animate={pulsing ? { opacity: [0.3, 1, 0.3] } : { opacity: 1 }}
+              className={cn(
+                "h-1 flex-1",
+                isWinner ? "bg-accent" : dimmed ? "bg-border" : debating ? "bg-orange-400/60" : "bg-accent/40"
+              )}
+              animate={pulsing ? { opacity: debating ? [0.4, 1, 0.4] : [0.3, 1, 0.3] } : { opacity: 1 }}
               transition={
                 pulsing
-                  ? { duration: 1.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
+                  ? { duration: debating ? 0.7 : 1.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }
                   : { duration: 0.5 }
               }
             />

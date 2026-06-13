@@ -18,11 +18,20 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const NETWORK = 'base-sepolia' as const
-const PRICE = process.env.X402_PRICE_USDC ?? '$0.01'
+const BASE_PRICE = process.env.X402_PRICE_USDC ?? '$0.01'
 
-/** Build the x402 payment requirements for one inference (USDC on Base Sepolia). */
-function buildRequirements(resource: string): PaymentRequirements {
-  const priced = processPriceToAtomicAmount(PRICE, NETWORK) as
+/**
+ * Build x402 payment requirements. When a ?conviction=N param is present (0-100),
+ * the price is scaled by N/100 — agents with higher conviction pay more for Round 2
+ * inference, putting real USDC behind their belief.
+ */
+function buildRequirements(resource: string, conviction = 100): PaymentRequirements {
+  // Scale: conviction=95 → 95% of base; conviction=100 → full base (Round 1).
+  const baseNum = parseFloat(BASE_PRICE.replace('$', ''))
+  const scaled = Math.max(0.001, baseNum * (conviction / 100))
+  const price = `$${scaled.toFixed(4)}`
+
+  const priced = processPriceToAtomicAmount(price, NETWORK) as
     | { maxAmountRequired: string; asset: { address: `0x${string}`; eip712: Record<string, unknown> } }
     | { error: string }
   if ('error' in priced) throw new Error(priced.error)
@@ -32,7 +41,7 @@ function buildRequirements(resource: string): PaymentRequirements {
     network: NETWORK,
     maxAmountRequired: priced.maxAmountRequired,
     resource: resource as `${string}://${string}`,
-    description: 'Wave Protocol Venice inference (x402-gated)',
+    description: `Wave Protocol Venice inference — conviction bet ${conviction}% ($${scaled.toFixed(4)} USDC)`,
     mimeType: 'application/json',
     payTo: getBackendAccount().address,
     maxTimeoutSeconds: 300,
@@ -50,10 +59,11 @@ function buildRequirements(resource: string): PaymentRequirements {
  */
 export async function POST(req: NextRequest) {
   const resource = `${req.nextUrl.origin}${req.nextUrl.pathname}`
+  const conviction = Math.min(100, Math.max(1, Number(req.nextUrl.searchParams.get('conviction') ?? '100')))
 
   let requirements: PaymentRequirements
   try {
-    requirements = buildRequirements(resource)
+    requirements = buildRequirements(resource, conviction)
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
   }
@@ -84,7 +94,7 @@ export async function POST(req: NextRequest) {
       { status: 402 }
     )
   }
-  logger.info(`  💳 x402 payment verified — payer ${String(verification.payer).slice(0, 12)}… — running Venice`)
+  logger.info(`  💳 x402 payment verified — conviction ${conviction}% — payer ${String(verification.payer).slice(0, 12)}… — running Venice`)
 
   const body = (await req.json().catch(() => ({}))) as {
     systemPrompt?: string

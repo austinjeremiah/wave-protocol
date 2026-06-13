@@ -7,9 +7,12 @@ import { basescanTx } from "@/lib/wave-api"
 export interface AgentView {
   agentId: number
   role: string
-  status: "idle" | "thinking" | "done"
+  status: "idle" | "thinking" | "debating" | "done"
   reasoning: string
-  confidence: number | null
+  confidence: number | null      // current (revised after debate if applicable)
+  round1Confidence: number | null // pre-debate
+  convictionBet: number | null   // USDC paid in Round 2 conviction bet
+  critiqueText: string | null
   summary: string | null
   txHash: string | null
 }
@@ -40,6 +43,10 @@ export function AgentOrb({
       {agent.status === "thinking" && !collapsed && (
         <div className="absolute inset-0 bg-accent/[0.06] animate-pulse pointer-events-none" />
       )}
+      {/* debate glow — slightly different shade to mark the second round */}
+      {agent.status === "debating" && !collapsed && (
+        <div className="absolute inset-0 bg-orange-400/[0.09] animate-pulse pointer-events-none" />
+      )}
 
       {/* header */}
       <div className="relative z-10 flex items-baseline justify-between mb-6">
@@ -68,17 +75,39 @@ export function AgentOrb({
               {agent.confidence}
             </span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">conf</span>
+            {/* Show confidence delta after debate */}
+            {agent.round1Confidence !== null && agent.round1Confidence !== agent.confidence && (
+              <motion.span
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "font-mono text-[10px] tracking-widest",
+                  (agent.confidence ?? 0) > agent.round1Confidence ? "text-accent" : "text-destructive",
+                )}
+              >
+                {(agent.confidence ?? 0) > agent.round1Confidence ? "+" : ""}
+                {(agent.confidence ?? 0) - agent.round1Confidence}
+              </motion.span>
+            )}
           </motion.div>
         ) : (
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/40">
-            {agent.status === "thinking" ? "reasoning…" : "awaiting"}
+            {agent.status === "thinking" ? "reasoning…" : agent.status === "debating" ? "debating…" : "awaiting"}
           </span>
         )}
       </div>
+      {/* Conviction bet display */}
+      {agent.convictionBet !== null && (
+        <div className="relative z-10 mb-3">
+          <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
+            conviction bet · ${agent.convictionBet.toFixed(4)} usdc
+          </span>
+        </div>
+      )}
 
       {/* reasoning stream (clamped) */}
       <div className="relative z-10 flex-1 overflow-hidden">
-        <p className="font-mono text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap line-clamp-[10]">
+        <p className="font-mono text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap line-clamp-[8]">
           {agent.reasoning}
         </p>
       </div>
@@ -120,6 +149,7 @@ export function AgentOrb({
 function statusLabel(status: AgentView["status"], collapsed: boolean, isWinner: boolean) {
   if (collapsed) return isWinner ? "selected" : "collapsed"
   if (status === "thinking") return "reasoning"
+  if (status === "debating") return "debating"
   if (status === "done") return "committed"
   return "idle"
 }

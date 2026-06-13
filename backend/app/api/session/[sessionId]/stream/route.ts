@@ -55,6 +55,10 @@ export async function GET(
       await sub.subscribe(channel)
 
       send(`: connected ${params.sessionId}\n\n`)
+      // Real `ready` event — emitted AFTER the Redis subscription is live. The client waits
+      // for this before triggering /run, so no early events are published into the void
+      // (pub/sub is fire-and-forget; anything sent before subscribe is lost).
+      send(`data: ${JSON.stringify({ type: 'ready' })}\n\n`)
       heartbeat = setInterval(() => send(`: ping\n\n`), 15_000)
 
       req.signal.addEventListener('abort', () => {

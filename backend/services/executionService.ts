@@ -7,7 +7,7 @@ import {
 import { DelegationManager } from '@metamask/smart-accounts-kit/contracts'
 import { getBackendWalletClient } from './chainService'
 import { runExclusive } from '@/lib/mutex'
-import { CHAIN_ID, USDC_ADDRESS } from '@/lib/constants'
+import { CHAIN_ID, USDC_ADDRESS, WAVE_STRATEGY_VAULT_ADDRESS } from '@/lib/constants'
 
 /**
  * F3b — the winner spends its delegated USDC. After collapse we redeem the WINNER's
@@ -46,6 +46,61 @@ export async function redeemWinnerDelegation(params: {
     getBackendWalletClient().sendTransaction({
       to: env.DelegationManager,
       data: calldata,
+    })
+  )
+}
+
+/** Minimal ABI for WaveStrategyVault.executeStrategy(bytes32, uint8). */
+const VAULT_ABI = [
+  {
+    name: 'executeStrategy',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'sessionId', type: 'bytes32' },
+      { name: 'winnerAgentId', type: 'uint8' },
+    ],
+    outputs: [],
+  },
+] as const
+
+/**
+ * Fallback funding for the vault: the backend treasury transfers USDC directly into the vault.
+ * Used when the user's ERC-7715 delegation can't fund it (no wallet, unfunded/undeployed gator,
+ * or a reverting redeem). The downstream Compound V3 supply is identical and fully real — only
+ * the funding source differs (treasury vs the user's delegated USDC).
+ */
+export async function fundVaultFromTreasury(params: { amountUsdc: number }): Promise<Hex> {
+  const vaultAddress = WAVE_STRATEGY_VAULT_ADDRESS
+  if (!vaultAddress) throw new Error('WAVE_STRATEGY_VAULT_ADDRESS is not set')
+  return runExclusive(() =>
+    getBackendWalletClient().writeContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [vaultAddress, parseUnits(params.amountUsdc.toString(), 6)],
+    })
+  )
+}
+
+/**
+ * Step 2 of the strategy execution: call WaveStrategyVault.executeStrategy() so the vault
+ * supplies its received USDC to Compound V3 on Base Sepolia, earning real yield.
+ * Step 1 (the delegation redeem OR treasury funding) must have already sent USDC to the vault.
+ */
+export async function executeVaultStrategy(params: {
+  sessionId: Hex
+  winnerAgentId: number
+}): Promise<Hex> {
+  const vaultAddress = WAVE_STRATEGY_VAULT_ADDRESS
+  if (!vaultAddress) throw new Error('WAVE_STRATEGY_VAULT_ADDRESS is not set')
+
+  return runExclusive(() =>
+    getBackendWalletClient().writeContract({
+      address: vaultAddress,
+      abi: VAULT_ABI,
+      functionName: 'executeStrategy',
+      args: [params.sessionId, params.winnerAgentId],
     })
   )
 }

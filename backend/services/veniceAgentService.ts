@@ -52,6 +52,17 @@ export interface AgentRunResult {
   output: AgentOutput
 }
 
+export interface AgentDebateResult {
+  agentId: number
+  role: string
+  critiqueText: string
+  round1Confidence: number
+  revisedConfidence: number
+  revisedAction: string
+  revisedSummary: string
+  convictionBetUsdc: number
+}
+
 export async function runAgent(params: {
   agentId: number
   userIntent: string
@@ -98,6 +109,107 @@ export async function runAgent(params: {
     reasoningContent,
     confidence: parsed.data.confidence,
     output: parsed.data,
+  }
+}
+
+const DEBATE_PROMPT = (
+  role: string,
+  userIntent: string,
+  round1Results: AgentRunResult[],
+  myResult: AgentRunResult
+) =>
+  `You are a specialist AI agent performing ${role} in a multi-agent debate system.
+
+User intent: "${userIntent}"
+
+The three agents proposed the following in Round 1:
+${round1Results
+  .map(
+    (r) =>
+      `• Agent ${r.agentId} (${r.role}): confidence=${r.confidence}, action="${r.output.action}", summary="${r.output.summary}"`
+  )
+  .join('\n')}
+
+Your Round 1 proposal: confidence=${myResult.confidence}, action="${myResult.output.action}"
+
+Now DEBATE: critically assess the other agents' approaches. What are their weaknesses? Why is your approach better or worse? If you were wrong, lower your confidence and revise. If you are more certain after seeing peers, increase it.
+
+This conviction bet is REAL — a higher revisedConfidence means you paid more USDC onchain for this inference. Be honest.
+
+Respond with ONLY a JSON object — no prose, no code fences:
+{
+  "critique": "your honest critique of the other agents' proposals and defense of your own",
+  "revisedConfidence": <integer 0-100>,
+  "revisedAction": "your final recommended action after the debate",
+  "revisedSummary": "updated summary"
+}`
+
+/**
+ * Round 2 debate inference. Each agent pays a CONVICTION BET (x402 price scaled by its
+ * Round 1 confidence) to see all peers' proposals and critique/revise its position.
+ * Higher conviction = bigger real USDC bet on this inference.
+ */
+export async function runAgentDebate(params: {
+  agentId: number
+  userIntent: string
+  round1Results: AgentRunResult[]
+  onReasoning?: (chunk: string) => void
+}): Promise<AgentDebateResult> {
+  const { agentId, userIntent, round1Results, onReasoning } = params
+  const role = AGENT_ROLES[agentId] ?? `Agent ${agentId}`
+  const myResult = round1Results.find((r) => r.agentId === agentId)
+  if (!myResult) throw new Error(`Round 1 result missing for agent ${agentId}`)
+
+  const paidFetch = await getPaidFetch(agentId)
+  const conviction = myResult.confidence
+
+  // ?conviction=N scales the x402 price by N/100 — the conviction bet.
+  const url = `${INFERENCE_URL}?conviction=${conviction}`
+  const betUsdc = parseFloat((process.env.X402_PRICE_USDC ?? '$0.01').replace('$', '')) * (conviction / 100)
+
+  const res = await paidFetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemPrompt: DEBATE_PROMPT(role, userIntent, round1Results, myResult),
+      userIntent,
+    }),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`x402 debate failed for agent ${agentId}: ${res.status} ${text.slice(0, 200)}`)
+  }
+
+  const data = (await res.json()) as { content?: string; reasoning_content?: string }
+  let reasoningContent = data.reasoning_content ?? ''
+  let content = data.content ?? ''
+
+  if (!reasoningContent) {
+    const think = content.match(/<think>([\s\S]*?)<\/think>/)
+    if (think) {
+      reasoningContent = think[1].trim()
+      content = content.replace(think[0], '').trim()
+    }
+  }
+
+  if (onReasoning && reasoningContent) onReasoning(reasoningContent)
+
+  // Parse the debate JSON — structure is slightly different from Round 1.
+  const raw = extractJson(content) as Record<string, unknown> | null
+  const critique = String(raw?.critique ?? reasoningContent.slice(0, 500))
+  const revisedConfidence = Math.min(100, Math.max(0, Number(raw?.revisedConfidence ?? myResult.confidence)))
+  const revisedAction = String(raw?.revisedAction ?? myResult.output.action)
+  const revisedSummary = String(raw?.revisedSummary ?? myResult.output.summary)
+
+  return {
+    agentId,
+    role,
+    critiqueText: critique,
+    round1Confidence: myResult.confidence,
+    revisedConfidence,
+    revisedAction,
+    revisedSummary,
+    convictionBetUsdc: betUsdc,
   }
 }
 
