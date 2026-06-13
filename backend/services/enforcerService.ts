@@ -1,5 +1,6 @@
 import { parseEventLogs, type Address, type Hex, type Log } from 'viem'
 import { getPublicClient, getBackendWalletClient } from './chainService'
+import { runExclusive } from '@/lib/mutex'
 import { VENICE_COLLAPSE_ENFORCER_ADDRESS } from '@/lib/constants'
 
 /** Minimal ABI for the functions/events we touch on VeniceCollapseEnforcer. */
@@ -84,12 +85,14 @@ function enforcerAddress(): Address {
 
 /** Open a collapse session onchain (backend EOA becomes its initiator). */
 export async function initSession(sessionId: Hex, agentCount = 3): Promise<Hex> {
-  return getBackendWalletClient().writeContract({
-    address: enforcerAddress(),
-    abi: ENFORCER_ABI,
-    functionName: 'initSession',
-    args: [sessionId, agentCount],
-  })
+  return runExclusive(() =>
+    getBackendWalletClient().writeContract({
+      address: enforcerAddress(),
+      abi: ENFORCER_ABI,
+      functionName: 'initSession',
+      args: [sessionId, agentCount],
+    })
+  )
 }
 
 /** Commit one agent's reasoning hash + confidence. The final submit auto-collapses. */
@@ -100,12 +103,14 @@ export async function submitReasoningHash(params: {
   confidence: number
 }): Promise<Hex> {
   const { sessionId, agentId, reasoningHash, confidence } = params
-  return getBackendWalletClient().writeContract({
-    address: enforcerAddress(),
-    abi: ENFORCER_ABI,
-    functionName: 'submitReasoningHash',
-    args: [sessionId, agentId, reasoningHash, confidence],
-  })
+  return runExclusive(() =>
+    getBackendWalletClient().writeContract({
+      address: enforcerAddress(),
+      abi: ENFORCER_ABI,
+      functionName: 'submitReasoningHash',
+      args: [sessionId, agentId, reasoningHash, confidence],
+    })
+  )
 }
 
 /** Block until a tx is mined and return its receipt. */

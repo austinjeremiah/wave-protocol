@@ -10,6 +10,7 @@ import {
 import { processPriceToAtomicAmount, safeBase64Decode } from 'x402/shared'
 import { VENICE_API_URL, VENICE_MODEL } from '@/lib/constants'
 import { getBackendAccount, getBackendWalletClient } from '@/services/chainService'
+import { runExclusive } from '@/lib/mutex'
 import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
@@ -95,13 +96,24 @@ export async function POST(req: NextRequest) {
 
   // SETTLE NOW — before Venice. The EIP-3009 authorization has a limited validity window;
   // Venice can take minutes, so settling after it would expire the authorization
-  // (invalid_exact_evm_payload_authorization_valid_before). Settle is nonce-managed so the
-  // 3 parallel agents don't collide. Tradeoff: a tiny toll is charged even if Venice errors.
-  const settlement = await settle(
-    getBackendWalletClient() as unknown as Parameters<typeof settle>[0],
-    payment,
-    requirements
-  )
+  // (invalid_exact_evm_payload_authorization_valid_before). Tradeoff: a tiny toll is charged
+  // even if Venice errors.
+  //
+  // runExclusive serializes settlements process-wide: the 3 agents call this route in parallel,
+  // so their settlement txs (from the SAME backend EOA) would otherwise race on the nonce and
+  // exceed Base Sepolia's in-flight-tx limit. One-at-a-time keeps nonces clean and ≤1 pending.
+  let settlement: Awaited<ReturnType<typeof settle>>
+  try {
+    settlement = await runExclusive(() =>
+      settle(getBackendWalletClient() as unknown as Parameters<typeof settle>[0], payment, requirements)
+    )
+  } catch (err) {
+    // A thrown settle (RPC/nonce/revert) — return a hard error (NOT 402, which x402-fetch would
+    // treat as "pay again" and retry). Surface the first line so the cause is visible in logs.
+    const reason = (err as Error).message?.split('\n')[0]?.slice(0, 200) ?? 'unknown'
+    logger.error(`  ✗ x402 settle threw — ${reason}`)
+    return NextResponse.json({ error: `Settlement error: ${reason}` }, { status: 500 })
+  }
   if (!settlement.success) {
     logger.error({ reason: settlement.errorReason }, 'x402 settlement failed')
     return NextResponse.json(

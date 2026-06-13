@@ -6,6 +6,7 @@ import {
 } from '@metamask/smart-accounts-kit'
 import { DelegationManager } from '@metamask/smart-accounts-kit/contracts'
 import { getBackendWalletClient } from './chainService'
+import { runExclusive } from '@/lib/mutex'
 import { CHAIN_ID, USDC_ADDRESS } from '@/lib/constants'
 
 /**
@@ -41,8 +42,10 @@ export async function redeemWinnerDelegation(params: {
     executions: [[execution]],
   })
 
-  return getBackendWalletClient().sendTransaction({
-    to: env.DelegationManager,
-    data: calldata,
-  })
+  return runExclusive(() =>
+    getBackendWalletClient().sendTransaction({
+      to: env.DelegationManager,
+      data: calldata,
+    })
+  )
 }
