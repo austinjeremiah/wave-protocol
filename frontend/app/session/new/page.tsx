@@ -74,12 +74,20 @@ export default function NewSessionPage() {
 
       <div className="relative z-10 w-full max-w-2xl">
         <div className="flex items-center justify-between">
-          <a
-            href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
-          >
-            ← Wave Protocol
-          </a>
+          <div className="flex items-center gap-5">
+            <a
+              href="/"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              ← Wave Protocol
+            </a>
+            <a
+              href="/portfolio"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              Positions
+            </a>
+          </div>
           <ConnectButton
             address={wallet.address}
             connect={() => wallet.connect().catch((e) => setError((e as Error).message))}

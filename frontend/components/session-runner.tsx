@@ -98,12 +98,20 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
       <div className="relative z-10 mx-auto max-w-7xl lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
         <div className="min-w-0">
         <header className="mb-10">
-          <a
-            href="/"
-            className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
-          >
-            ← Wave Protocol
-          </a>
+          <div className="flex items-center gap-5">
+            <a
+              href="/"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              ← Wave Protocol
+            </a>
+            <a
+              href="/portfolio"
+              className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
+            >
+              Positions ↗
+            </a>
+          </div>
           <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
@@ -300,12 +308,20 @@ function ResultCard({
         </div>
       )}
 
-      <a
-        href="/session/new"
-        className="mt-8 inline-flex border border-foreground/20 px-6 py-3 font-mono text-xs uppercase tracking-widest hover:border-accent hover:text-accent transition-all"
-      >
-        Run another →
-      </a>
+      <div className="mt-8 flex flex-wrap items-center gap-4">
+        <a
+          href="/portfolio"
+          className="glass glass-hover inline-flex px-6 py-3 font-mono text-xs uppercase tracking-widest hover:text-accent transition-all"
+        >
+          View your positions →
+        </a>
+        <a
+          href="/session/new"
+          className="inline-flex border border-foreground/20 rounded-xl px-6 py-3 font-mono text-xs uppercase tracking-widest hover:border-accent hover:text-accent transition-all"
+        >
+          Run another →
+        </a>
+      </div>
     </section>
   )
 }

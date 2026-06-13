@@ -1,5 +1,8 @@
 // Typed client for the Wave Protocol backend + SSE event types.
 
+import { createPublicClient, http, formatUnits } from "viem"
+import { baseSepolia } from "viem/chains"
+
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001"
 
 /** Roles by agentId (yield-strategist lenses; matches the backend). */
@@ -51,11 +54,56 @@ export async function getSession(sessionId: string): Promise<SessionRecord> {
   return jsonOrThrow(await fetch(`${BASE}/api/session/${sessionId}`))
 }
 
+/** List sessions (newest first), optionally scoped to one owner address — powers /portfolio. */
+export async function listSessions(opts: { userAddress?: string; limit?: number } = {}): Promise<SessionRecord[]> {
+  const qs = new URLSearchParams()
+  if (opts.userAddress) qs.set("userAddress", opts.userAddress)
+  if (opts.limit) qs.set("limit", String(opts.limit))
+  const suffix = qs.toString() ? `?${qs}` : ""
+  return jsonOrThrow(await fetch(`${BASE}/api/session${suffix}`))
+}
+
 export function streamUrl(sessionId: string): string {
   return `${BASE}/api/session/${sessionId}/stream`
 }
 
 export const basescanTx = (hash: string) => `https://sepolia.basescan.org/tx/${hash}`
+export const basescanAddress = (addr: string) => `https://sepolia.basescan.org/address/${addr}`
+
+// ── Compound V3 live position read ───────────────────────────────
+// The WaveStrategyVault supplies via `supplyTo(user, …)`, so the USER owns the Compound position.
+// `comet.balanceOf(user)` returns its present value in USDC (6 decimals) — and it grows with yield.
+
+export const COMPOUND_COMET_ADDRESS =
+  (process.env.NEXT_PUBLIC_COMPOUND_COMET ?? "0x571621Ce60Cebb0c1D442B5afb38B1663C6Bf017") as `0x${string}`
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL ?? "https://sepolia.base.org"),
+})
+
+const COMET_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const
+
+/** Live supplied balance (USDC) the address owns in Compound V3 — present value incl. accrued yield. */
+export async function readCompoundBalance(account: string): Promise<number> {
+  const bal = (await publicClient.readContract({
+    address: COMPOUND_COMET_ADDRESS,
+    abi: COMET_ABI,
+    functionName: "balanceOf",
+    args: [account as `0x${string}`],
+  })) as bigint
+  return Number(formatUnits(bal, USDC_DECIMALS))
+}
+
+export const USDC_DECIMALS = 6
 
 /** Persisted session shape (subset we use) returned by GET /api/session/:id. */
 export interface SessionRecord {
@@ -68,6 +116,8 @@ export interface SessionRecord {
   winnerHash: string | null
   strategyVaultTx: string | null
   aaveSupplyTx: string | null
+  createdAt?: string
+  updatedAt?: string
   agentResults: {
     agentId: number
     role: string

@@ -143,6 +143,14 @@ export function ColophonSection() {
             </li>
             <li>
               <a
+                href="/portfolio"
+                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+              >
+                Your Positions →
+              </a>
+            </li>
+            <li>
+              <a
                 href="https://github.com"
                 target="_blank"
                 rel="noreferrer"
