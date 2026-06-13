@@ -39,6 +39,8 @@ export async function createSubDelegations(params: {
   if (!VENICE_COLLAPSE_ENFORCER_ADDRESS) {
     throw new Error('VENICE_COLLAPSE_ENFORCER_ADDRESS is not set')
   }
+  // Capture the narrowed value in a local const so it stays non-undefined inside the closure.
+  const enforcerAddr = VENICE_COLLAPSE_ENFORCER_ADDRESS
   const agents = await getAgentWallets()
   const agentA = agents[0]
 
@@ -60,9 +62,7 @@ export async function createSubDelegations(params: {
           tokenAddress: USDC_ADDRESS,
           maxAmount: budgets[agentId],
         },
-        caveats: [
-          { enforcer: VENICE_COLLAPSE_ENFORCER_ADDRESS, terms, args: '0x' },
-        ],
+        caveats: [{ enforcer: enforcerAddr, terms, args: '0x' }],
       })
 
       // signDelegation returns the signature Hex; attach it to the unsigned delegation.

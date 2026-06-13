@@ -16,7 +16,7 @@ export const VENICE_COLLAPSE_ENFORCER_ADDRESS = process.env
 /** Venice AI — OpenAI-compatible API, authenticated with VENICE_API_KEY. */
 export const VENICE_API_URL = process.env.VENICE_API_URL ?? 'https://api.venice.ai/api/v1'
 /** Reasoning model id — a Venice "thinking" model that returns reasoning_content. */
-export const VENICE_MODEL = process.env.VENICE_MODEL ?? 'qwen3-235b-a22b-thinking-2507'
+export const VENICE_MODEL = process.env.VENICE_MODEL ?? 'zai-org-glm-4.7-flash'
 
 /** USDC budget split across the 3 agents (Research / Analysis / Execution). */
 export const AGENT_BUDGET_SPLIT = [0.4, 0.35, 0.25] as const

@@ -34,7 +34,9 @@ export async function getAgentWallets(): Promise<AgentWallet[]> {
       }
       const account = privateKeyToAccount(key)
       const smartAccount = await toMetaMaskSmartAccount({
-        client,
+        // viem's PublicClient has different type identities across the duplicate viem
+        // copies in the dep tree; it is runtime-compatible, so cast to SAK's expected type.
+        client: client as unknown as Parameters<typeof toMetaMaskSmartAccount>[0]['client'],
         implementation: Implementation.Hybrid,
         deployParams: [account.address, [], [], []],
         deploySalt: '0x',
