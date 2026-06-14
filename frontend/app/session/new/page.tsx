@@ -73,14 +73,25 @@ export default function NewSessionPage() {
       <div className="glow-ambient" aria-hidden />
 
       <div className="relative z-10 w-full max-w-2xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-5">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left corner: wallet + back */}
+          <div className="flex items-center gap-4">
+            <ConnectButton
+              address={wallet.address}
+              connect={() => wallet.connect().catch((e) => setError((e as Error).message))}
+              connecting={wallet.connecting}
+              hasWallet={wallet.hasWallet}
+              disconnect={wallet.disconnect}
+            />
             <a
               href="/"
               className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
             >
-              ← Wave Protocol
+              ← Wave
             </a>
+          </div>
+          {/* Right: section links */}
+          <div className="flex items-center gap-5">
             <a
               href="/stats"
               className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors"
@@ -112,13 +123,6 @@ export default function NewSessionPage() {
               Positions
             </a>
           </div>
-          <ConnectButton
-            address={wallet.address}
-            connect={() => wallet.connect().catch((e) => setError((e as Error).message))}
-            connecting={wallet.connecting}
-            hasWallet={wallet.hasWallet}
-            disconnect={wallet.disconnect}
-          />
         </div>
 
         <div className="mt-8 mb-12">
