@@ -22,7 +22,6 @@ export default function NewSessionPage() {
 
   const [intent, setIntent] = useState("")
   const [budget, setBudget] = useState(5)
-  const [grantEnabled, setGrantEnabled] = useState(true)
   const [phase, setPhase] = useState<Phase>("")
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<CreateSessionResult | null>(null)
@@ -44,7 +43,10 @@ export default function NewSessionPage() {
       }))
       setCreated(session)
 
-      if (wallet.address && grantEnabled) {
+      // Main flow: the user grants an ERC-7715 spending cap → redelegated to the agents (ERC-7710),
+      // and the winner's delegation is redeemed to deploy the capital. If the wallet can't grant
+      // (no Flask), we still proceed — the run falls back to treasury funding (shown on the session).
+      if (wallet.address) {
         setPhase("granting")
         try {
           await grant({
@@ -54,10 +56,7 @@ export default function NewSessionPage() {
             budgetUsdc: budget,
           })
         } catch (err) {
-          // Grant is best-effort — the collapse still runs without it.
-          setError(`Delegation skipped: ${(err as Error).message}`)
-          setPhase("")
-          return
+          console.warn("ERC-7715 grant unavailable — continuing with treasury fallback:", (err as Error).message)
         }
       }
       router.push(`/session/${session.sessionId}`)
@@ -186,25 +185,21 @@ export default function NewSessionPage() {
             </p>
           </div>
 
-          {/* ERC-7715 grant toggle (only when a wallet is connected) */}
+          {/* ERC-7715 grant — the main flow when a wallet is connected (Flask). */}
           {wallet.address && (
-            <label className="glass glass-hover flex items-start gap-3 px-4 py-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={grantEnabled}
-                onChange={(e) => setGrantEnabled(e.target.checked)}
-                className="mt-0.5 accent-[oklch(0.7_0.2_45)]"
-              />
+            <div className="glass flex items-start gap-3 px-4 py-3 !border-accent/30">
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
               <span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-foreground">
-                  Fund with your own USDC (ERC-7715)
+                  Sign a spending cap (ERC-7715)
                 </span>
                 <span className="mt-1 block font-mono text-[10px] text-muted-foreground/70 leading-relaxed">
-                  Optional — sign a spending cap so YOUR USDC is deployed. Otherwise the protocol fronts
-                  the demo capital, credited to your address either way.
+                  On deploy you&#39;ll sign an ERC-7715 cap — the agents spend YOUR USDC within it
+                  (redelegated as ERC-7710, redeemed by the collapse winner). No Flask? The flow still
+                  runs on treasury funding, credited to you.
                 </span>
               </span>
-            </label>
+            </div>
           )}
 
           {error && <p className="font-mono text-xs text-destructive border border-destructive/40 rounded-xl px-4 py-3">{error}</p>}

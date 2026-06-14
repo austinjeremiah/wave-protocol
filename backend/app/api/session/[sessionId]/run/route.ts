@@ -263,10 +263,16 @@ export async function POST(
       let viaDelegation = false
       if (winnerCtx) {
         try {
+          const accountMetadata = session.accountMetadata as unknown as
+            | { factory: `0x${string}`; factoryData: `0x${string}` }[]
+            | null
           fundingTx = await redeemWinnerDelegation({
             winnerContext: winnerCtx,
             recipient: vaultAddress as `0x${string}`,
             amountUsdc: session.budgetUsdc,
+            sessionId: sessionId as `0x${string}`,
+            winnerAgentId: collapse.winnerAgentId,
+            accountMetadata,
           })
           viaDelegation = true
         } catch (e) {
@@ -305,7 +311,7 @@ export async function POST(
       await waitForTx(supplyTx)
       await prisma.session.update({
         where: { sessionId },
-        data: { strategyVaultTx: fundingTx, aaveSupplyTx: supplyTx },
+        data: { strategyVaultTx: fundingTx, aaveSupplyTx: supplyTx, fundedViaDelegation: viaDelegation },
       })
       logger.info(
         { sessionId, fundingTx, supplyTx, viaDelegation },

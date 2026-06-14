@@ -16,6 +16,7 @@ model Session {
   status            SessionStatus @default(PENDING)
   permissionContext String? // ERC-7715 root delegation context from the wallet
   delegationManager String?
+  accountMetadata   Json? // ERC-7715 grant dependencies [{ factory, factoryData }] — deploys the user's gator on first redeem
   agentDelegations  Json? // the 3 signed sub-delegations (A->B, A->C, A->D)
   agentResults      AgentResult[]
   winnerAgentId     Int?
@@ -23,6 +24,7 @@ model Session {
   collapseTaskId    String?
   strategyVaultTx   String?   // tx: winner delegation redeem → USDC to WaveStrategyVault
   aaveSupplyTx      String?   // tx: vault.executeStrategy → USDC supplied to Compound V3
+  fundedViaDelegation Boolean? // true = ERC-7710 delegation redeem; false = treasury fallback
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

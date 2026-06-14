@@ -173,6 +173,7 @@ export interface SessionRecord {
   winnerHash: string | null
   strategyVaultTx: string | null
   aaveSupplyTx: string | null
+  fundedViaDelegation: boolean | null
   createdAt?: string
   updatedAt?: string
   agentResults: {

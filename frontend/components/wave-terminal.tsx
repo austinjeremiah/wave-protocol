@@ -100,11 +100,19 @@ export function WaveTerminal({
 }) {
   const lines = toLines(events)
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Follow the newest line ONLY while the user is parked at the bottom — so scrolling up to
+  // read an earlier critique doesn't get yanked back down on the next event.
+  const stickRef = useRef(true)
 
-  // Auto-scroll the log to the latest line.
+  const onScroll = () => {
+    const el = scrollRef.current
+    if (!el) return
+    stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }
+
   useEffect(() => {
     const el = scrollRef.current
-    if (el) el.scrollTop = el.scrollHeight
+    if (el && stickRef.current) el.scrollTop = el.scrollHeight
   }, [lines.length])
 
   return (
@@ -124,7 +132,7 @@ export function WaveTerminal({
       </div>
 
       {/* log body */}
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed">
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 font-mono text-[11px] leading-relaxed">
         {lines.length === 0 ? (
           <p className="text-muted-foreground/60">
             {connected ? "› awaiting agents…" : "› connecting…"}

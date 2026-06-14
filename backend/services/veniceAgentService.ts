@@ -2,6 +2,7 @@ import { wrapFetchWithPayment, createSigner } from 'x402-fetch'
 import type { Hex } from 'viem'
 import { AgentOutputSchema, type AgentOutput } from '@/schemas/agentOutputSchema'
 import { AGENT_ROLES } from '@/lib/constants'
+import { logger } from '@/lib/logger'
 
 /**
  * Each agent pays a small USDC toll (x402, Base Sepolia) per inference to the gateway at
@@ -76,46 +77,71 @@ export async function runAgent(params: {
   const role = AGENT_ROLES[agentId] ?? `Agent ${agentId}`
   const paidFetch = await getPaidFetch(agentId)
 
-  const res = await paidFetch(INFERENCE_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ systemPrompt: SYSTEM_PROMPT(role), userIntent }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`x402 inference failed for agent ${agentId}: ${res.status} ${text.slice(0, 200)}`)
-  }
+  // The model (fast, non-reasoning) occasionally returns malformed/empty JSON. Retry a few
+  // times — each attempt is an independent roll — before falling back, so one bad response
+  // never kills the whole swarm run.
+  const MAX_ATTEMPTS = 3
+  let reasoningContent = ''
+  let output: AgentOutput | null = null
+  let lastErr = 'no response'
 
-  const data = (await res.json()) as { content?: string; reasoning_content?: string }
-  let reasoningContent = data.reasoning_content ?? ''
-  let content = data.content ?? ''
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !output; attempt++) {
+    const res = await paidFetch(INFERENCE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemPrompt: SYSTEM_PROMPT(role), userIntent }),
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      lastErr = `${res.status} ${text.slice(0, 200)}`
+      logger.warn(`  ⚠ agent ${agentId} (${role}) inference HTTP ${lastErr} — attempt ${attempt}/${MAX_ATTEMPTS}`)
+      continue
+    }
 
-  if (!reasoningContent) {
-    const think = content.match(/<think>([\s\S]*?)<\/think>/)
-    if (think) {
-      reasoningContent = think[1].trim()
-      content = content.replace(think[0], '').trim()
+    const data = (await res.json()) as { content?: string; reasoning_content?: string }
+    reasoningContent = data.reasoning_content ?? ''
+    let content = data.content ?? ''
+    if (!reasoningContent) {
+      const think = content.match(/<think>([\s\S]*?)<\/think>/)
+      if (think) {
+        reasoningContent = think[1].trim()
+        content = content.replace(think[0], '').trim()
+      }
+    }
+
+    const parsed = AgentOutputSchema.safeParse(extractJson(content))
+    if (parsed.success) {
+      output = parsed.data
+      if (!reasoningContent) reasoningContent = parsed.data.reasoning || parsed.data.summary || `${role}: ${parsed.data.action}`
+    } else {
+      lastErr = parsed.error.message.split('\n')[0]
+      logger.warn(`  ⚠ agent ${agentId} (${role}) malformed output — attempt ${attempt}/${MAX_ATTEMPTS} (${lastErr})`)
     }
   }
 
-  const parsed = AgentOutputSchema.safeParse(extractJson(content))
-  if (!parsed.success) {
-    throw new Error(
-      `Agent ${agentId} (${role}) returned invalid structured output: ${parsed.error.message}`
-    )
+  // Last resort: a valid, low-confidence output so the agent still participates and the onchain
+  // hash stays unique (the venue is Compound either way). It won't unfairly win the collapse.
+  if (!output) {
+    logger.warn(`  ✗ agent ${agentId} (${role}) gave no valid output after ${MAX_ATTEMPTS} tries — using fallback`)
+    output = {
+      summary: `${role} lens: supply USDC to Compound V3 for lending yield (model output unavailable).`,
+      confidence: 40,
+      action: 'Supply USDC to Compound V3 for lending yield',
+      reasoning:
+        reasoningContent ||
+        `The ${role} strategist could not return structured analysis this round; defaulting to the conservative Compound V3 supply. Last error: ${lastErr}.`,
+    }
+    if (!reasoningContent) reasoningContent = output.reasoning
   }
 
-  // Fast non-reasoning models return no reasoning_content — fall back to the structured
-  // reasoning so the onchain hash stays UNIQUE per agent and the UI has text to show.
-  if (!reasoningContent) reasoningContent = parsed.data.reasoning || parsed.data.summary || `${role}: ${parsed.data.action}`
   if (onReasoning && reasoningContent) onReasoning(reasoningContent)
 
   return {
     agentId,
     role,
     reasoningContent,
-    confidence: parsed.data.confidence,
-    output: parsed.data,
+    confidence: output.confidence,
+    output,
   }
 }
 

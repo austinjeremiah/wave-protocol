@@ -24,7 +24,7 @@ export async function POST(
     return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   }
 
-  let body: { rootDelegation?: unknown; delegationManager?: string }
+  let body: { rootDelegation?: unknown; delegationManager?: string; accountMetadata?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -55,6 +55,8 @@ export async function POST(
             ? body.rootDelegation
             : JSON.stringify(body.rootDelegation),
         delegationManager: body.delegationManager ?? null,
+        // [{ factory, factoryData }] — deploys the user's gator account on first redeem.
+        accountMetadata: body.accountMetadata as object | undefined,
         // [{ agentId, permissionContext }] — hex strings, JSON-safe.
         agentDelegations: agentContexts as unknown as object,
         status: 'DELEGATION_GRANTED',

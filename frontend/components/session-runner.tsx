@@ -78,7 +78,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
     }
   }, [mode, collapsedLive, sessionId])
 
-  const { agents, winnerId, winner, phase, errored, supplied, supplyTxHash, recipient } = useMemo(
+  const { agents, winnerId, winner, phase, errored, supplied, supplyTxHash, recipient, viaDelegation } = useMemo(
     () => (mode === "replay" ? deriveStored(stored) : deriveLive(events)),
     [mode, stored, events],
   )
@@ -217,6 +217,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
             action={winnerAction}
             supplyTxHash={supplyTxHash ?? stored?.aaveSupplyTx ?? null}
             recipient={recipient ?? stored?.userAddress ?? null}
+            viaDelegation={viaDelegation ?? stored?.fundedViaDelegation ?? null}
           />
         )}
         </div>
@@ -237,6 +238,7 @@ function ResultCard({
   action,
   supplyTxHash,
   recipient,
+  viaDelegation,
 }: {
   sessionId: string
   winnerAgent: AgentView
@@ -244,6 +246,7 @@ function ResultCard({
   action: string | null
   supplyTxHash: string | null
   recipient: string | null
+  viaDelegation: boolean | null
 }) {
   return (
     <section className="glass mt-10 !border-accent/40 p-8">
@@ -295,9 +298,26 @@ function ResultCard({
         )}
       </div>
 
+      {/* Funding path — proves whether the ERC-7710 delegation redeem ran (Smart Accounts Kit) */}
+      {supplyTxHash && viaDelegation !== null && (
+        <div className="mt-6">
+          {viaDelegation ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/[0.06] px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-accent">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              Funded via ERC-7710 delegation · your USDC
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 rounded-full border border-border/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+              Funded via treasury (fallback) · no ERC-7715 grant
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Your Compound V3 position — the user owns the yield */}
       {supplyTxHash && (
-        <div className="mt-6 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
+        <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-emerald-400">
             Your Position · Compound V3
           </span>
@@ -445,6 +465,7 @@ function deriveLive(events: WaveEvent[]) {
   let supplied = false
   let supplyTxHash: string | null = null
   let recipient: string | null = null
+  let viaDelegation: boolean | null = null
 
   for (const e of events) {
     switch (e.type) {
@@ -497,6 +518,9 @@ function deriveLive(events: WaveEvent[]) {
       case "execution_started":
         phase = "executing"
         break
+      case "execution_redeemed":
+        viaDelegation = e.viaDelegation
+        break
       case "execution_supplied":
         supplied = true
         supplyTxHash = e.txHash
@@ -521,12 +545,13 @@ function deriveLive(events: WaveEvent[]) {
     supplied,
     supplyTxHash,
     recipient,
+    viaDelegation,
   }
 }
 
 function deriveStored(s: SessionRecord | null) {
   if (!s) {
-    return { agents: [] as AgentView[], winnerId: null, winner: null, phase: "connecting" as Phase, errored: null, supplied: false, supplyTxHash: null, recipient: null }
+    return { agents: [] as AgentView[], winnerId: null, winner: null, phase: "connecting" as Phase, errored: null, supplied: false, supplyTxHash: null, recipient: null, viaDelegation: null }
   }
   const agents: AgentView[] = (s.agentResults ?? [])
     .map((r) => ({
@@ -562,6 +587,7 @@ function deriveStored(s: SessionRecord | null) {
     supplied: !!s.aaveSupplyTx,
     supplyTxHash: s.aaveSupplyTx ?? null,
     recipient: s.userAddress ?? null,
+    viaDelegation: s.fundedViaDelegation ?? null,
   }
 }
 
