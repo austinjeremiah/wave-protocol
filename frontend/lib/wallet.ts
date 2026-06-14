@@ -48,11 +48,27 @@ export function useWallet() {
     return () => clearTimeout(t)
   }, [])
 
+  // Reflect account switches made directly in the MetaMask UI.
+  useEffect(() => {
+    const eth = getEthereum()
+    if (!eth?.on) return
+    const onAccountsChanged = (accs: string[]) => setAddress((accs?.[0] as `0x${string}`) ?? null)
+    eth.on("accountsChanged", onAccountsChanged)
+    return () => eth.removeListener?.("accountsChanged", onAccountsChanged)
+  }, [])
+
   const connect = useCallback(async (): Promise<`0x${string}` | null> => {
     const eth = getEthereum()
     if (!eth) throw new Error("MetaMask not found. Install MetaMask Flask for ERC-7715.")
     setConnecting(true)
     try {
+      // Force the account picker (so you can SWITCH accounts, e.g. seller → buyer for the demo).
+      // eth_requestAccounts alone silently reuses the connected account with no chooser.
+      try {
+        await eth.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] })
+      } catch {
+        // User dismissed the picker, or the wallet doesn't support it — fall back to the default.
+      }
       const accs: string[] = await eth.request({ method: "eth_requestAccounts" })
       const addr = (accs?.[0] as `0x${string}`) ?? null
       setAddress(addr)

@@ -79,20 +79,20 @@ export default function MarketPage() {
         </div>
 
         {/* title */}
-        <div className="mt-10 mb-6">
+        <div className="mt-10 mb-8">
           <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Market</span>
           <h1 className="mt-3 font-[var(--font-bebas)] text-6xl md:text-7xl tracking-tight leading-none">
             STRATEGIES, TRADED
           </h1>
-          <p className="mt-4 max-w-xl font-mono text-sm text-muted-foreground leading-relaxed">
-            Every listing is a strategy that already won an onchain collapse. Buy one and the proven
-            play re-deploys to <span className="text-foreground">your own</span> Compound position —
-            no debate to re-run. You pay the seller in USDC over x402; they earn on every copy.
+          <p className="mt-4 max-w-lg font-mono text-sm text-muted-foreground leading-relaxed">
+            Copy a proven, consensus-backed strategy to{" "}
+            <span className="text-foreground">your own</span> Compound position. Pay the seller over
+            x402 — they earn on every copy.
           </p>
-          <p className="mt-3 max-w-xl font-mono text-[10px] text-muted-foreground/60 leading-relaxed">
-            On Base Sepolia every strategy deploys to Compound V3 — the trade proves the mechanism:
-            verifiable provenance + a real x402 sale rail. Venue differentiation lands at mainnet.
-          </p>
+          <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-border/50 px-3 py-1 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
+            <span className="h-1 w-1 rounded-full bg-accent/60" />
+            testnet · all deploy to Compound V3
+          </span>
         </div>
 
         {error && (
@@ -223,78 +223,76 @@ function ListingCard({
   }
 
   return (
-    <div className="glass flex flex-col p-6">
+    <div className="glass glass-hover flex flex-col p-5">
+      {/* header: role + id, confidence pill, copies */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="h-1.5 w-5 rounded-full" style={{ background: color }} />
+          <span className="h-1.5 w-4 rounded-full" style={{ background: color }} />
           <span className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color }}>
-            {listing.role ?? AGENT_ROLES[listing.winnerAgentId]} · #{listing.listingId}
+            {listing.role ?? AGENT_ROLES[listing.winnerAgentId]}
+          </span>
+          <span className="font-mono text-[9px] text-muted-foreground/40">#{listing.listingId}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {listing.confidence !== null && (
+            <span className="rounded-full border border-accent/30 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-accent">
+              {listing.confidence} conf
+            </span>
+          )}
+          <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
+            {listing.purchases} {listing.purchases === 1 ? "copy" : "copies"}
           </span>
         </div>
-        <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-          {listing.purchases} {listing.purchases === 1 ? "copy" : "copies"}
-        </span>
       </div>
 
-      {listing.userIntent && (
-        <p className="mt-4 font-mono text-[11px] leading-relaxed text-foreground/60 line-clamp-1 italic">
-          &ldquo;{listing.userIntent}&rdquo;
-        </p>
-      )}
+      {/* one-line reasoning */}
       {listing.reasoningExcerpt && (
-        <p className="mt-3 font-mono text-[11px] leading-relaxed text-foreground/75 line-clamp-4">
+        <p className="mt-3 font-mono text-[11px] leading-relaxed text-foreground/70 line-clamp-2">
           {listing.reasoningExcerpt}
         </p>
       )}
 
-      <div className="mt-4 flex items-center gap-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-        {listing.confidence !== null && <span>conf {listing.confidence}</span>}
-        <code className="normal-case tracking-normal text-muted-foreground/50">
-          {listing.reasoningHash.slice(0, 8)}…
-        </code>
-        {listing.listTxHash && (
-          <a href={basescanTx(listing.listTxHash)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-            proof ↗
-          </a>
-        )}
-      </div>
-
-      {/* buy controls */}
-      <div className="mt-5 border-t border-border/40 pt-4">
+      {/* buy row */}
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/40 pt-4">
         {done ? (
-          <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-emerald-400">Copied · you own a Compound position</span>
-            <div className="flex items-center gap-4 font-mono text-[10px]">
-              <a href={basescanTx(done.sellerPaymentTx)} target="_blank" rel="noreferrer" className="text-accent hover:underline">seller paid ↗</a>
-              <a href={basescanTx(done.supplyTxHash)} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">your supply ↗</a>
+          <div className="flex w-full items-center justify-between font-mono text-[10px]">
+            <span className="uppercase tracking-widest text-emerald-400">Copied ✓</span>
+            <div className="flex items-center gap-3">
+              <a href={basescanTx(done.sellerPaymentTx)} target="_blank" rel="noreferrer" className="text-accent hover:underline">paid ↗</a>
+              <a href={basescanTx(done.supplyTxHash)} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">position ↗</a>
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-sm text-accent">${listing.priceUsdc.toFixed(2)}<span className="text-[9px] text-muted-foreground/60">/copy</span></span>
-              <label className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/70">
-                deploy
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={deploy}
-                  onChange={(e) => setDeploy(Math.max(1, Number(e.target.value)))}
-                  className="glass w-14 px-2 py-1 font-mono text-[11px] text-foreground outline-none focus:!border-accent"
-                />
-                USDC
-              </label>
+          <>
+            <div className="flex items-baseline gap-3">
+              <span className="font-mono text-base text-accent">${listing.priceUsdc.toFixed(2)}</span>
+              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">/copy</span>
+              {listing.listTxHash && (
+                <a href={basescanTx(listing.listTxHash)} target="_blank" rel="noreferrer" className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 hover:text-accent">
+                  proof ↗
+                </a>
+              )}
             </div>
-            <button
-              onClick={onBuy}
-              disabled={busy || !!isMine}
-              title={isMine ? "You can't buy your own listing" : undefined}
-              className="glass glass-hover px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-foreground hover:text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {busy ? "Signing…" : isMine ? "Yours" : "Buy →"}
-            </button>
-          </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={deploy}
+                onChange={(e) => setDeploy(Math.max(1, Number(e.target.value)))}
+                title="USDC to deploy to your Compound position"
+                className="glass w-12 px-2 py-1.5 font-mono text-[11px] text-foreground outline-none focus:!border-accent"
+              />
+              <button
+                onClick={onBuy}
+                disabled={busy || !!isMine}
+                title={isMine ? "You can't buy your own listing" : "Deploy USDC to your Compound position"}
+                className="glass glass-hover px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest text-foreground hover:text-accent transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {busy ? "Signing…" : isMine ? "Yours" : "Buy →"}
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

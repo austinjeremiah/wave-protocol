@@ -39,7 +39,7 @@ export default function AgentsPage() {
             Stats
           </a>
           <a href="/explore" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
-            Explore
+            E xplore
           </a>
           <a href="/market" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
             Market
