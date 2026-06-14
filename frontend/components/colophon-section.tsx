@@ -80,42 +80,38 @@ export function ColophonSection() {
       </div>
 
       {/* Multi-column layout */}
-      <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 md:gap-12">
-        {/* Contract */}
+      <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+        {/* Contracts */}
         <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Contract</h4>
-          <ul className="space-y-2">
-            <li>
-              <a
-                href="https://sepolia.basescan.org/address/0x3ec6F2c470e57f487709b153f77c02851fe864C5"
-                target="_blank"
-                rel="noreferrer"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Enforcer ↗
-              </a>
-            </li>
-            <li className="font-mono text-xs text-muted-foreground/60">0x3ec6…64C5</li>
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Contracts</h4>
+          <ul className="space-y-2.5">
+            {[
+              { label: "Enforcer ↗", addr: "0x3ec6F2c470e57f487709b153f77c02851fe864C5" },
+              { label: "Vault ↗", addr: "0x2f4D2c924532DA5190FD14C5ECDb4b8446A8161b" },
+              { label: "Market ↗", addr: "0xB642aa23F5320999B44bFD011765F6f529320B7b" },
+            ].map((c) => (
+              <li key={c.addr}>
+                <a
+                  href={`https://sepolia.basescan.org/address/${c.addr}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+                >
+                  {c.label}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 
-        {/* Onchain */}
+        {/* Stack */}
         <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Onchain</h4>
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Stack</h4>
           <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Base Sepolia</li>
-            <li className="font-mono text-xs text-foreground/80">USDC · x402</li>
-            <li className="font-mono text-xs text-foreground/80">ERC-7710</li>
-          </ul>
-        </div>
-
-        {/* Agents */}
-        <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Agents</h4>
-          <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Venice AI</li>
-            <li className="font-mono text-xs text-foreground/80">Reasoning models</li>
-            <li className="font-mono text-xs text-foreground/80">3 in parallel</li>
+            <li className="font-mono text-xs text-foreground/80">Venice AI · 3 agents</li>
+            <li className="font-mono text-xs text-foreground/80">x402 · EIP-3009</li>
+            <li className="font-mono text-xs text-foreground/80">ERC-7710 enforcer</li>
+            <li className="font-mono text-xs text-foreground/80">Compound V3</li>
           </ul>
         </div>
 
@@ -129,58 +125,24 @@ export function ColophonSection() {
           </ul>
         </div>
 
-        {/* Links */}
+        {/* Explore */}
         <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Links</h4>
-          <ul className="space-y-2">
-            <li>
-              <a
-                href="/session/new"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Run Demo →
-              </a>
-            </li>
-            <li>
-              <a
-                href="/stats"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Protocol Stats →
-              </a>
-            </li>
-            <li>
-              <a
-                href="/explore"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Explore Ledger →
-              </a>
-            </li>
-            <li>
-              <a
-                href="/market"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Wave Market →
-              </a>
-            </li>
-            <li>
-              <a
-                href="/agents"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Leaderboard →
-              </a>
-            </li>
-            <li>
-              <a
-                href="/portfolio"
-                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
-              >
-                Your Positions →
-              </a>
-            </li>
+          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Explore</h4>
+          <ul className="space-y-2.5">
+            {[
+              { href: "/session/new", label: "Run Demo →" },
+              { href: "/market", label: "Wave Market →" },
+              { href: "/explore", label: "Ledger →" },
+              { href: "/agents", label: "Leaderboard →" },
+              { href: "/portfolio", label: "Positions →" },
+              { href: "/stats", label: "Stats →" },
+            ].map((l) => (
+              <li key={l.href}>
+                <a href={l.href} className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200">
+                  {l.label}
+                </a>
+              </li>
+            ))}
             <li>
               <a
                 href="https://github.com"
@@ -193,15 +155,6 @@ export function ColophonSection() {
             </li>
           </ul>
         </div>
-
-        {/* Chain */}
-        <div className="col-span-1">
-          <h4 className="font-mono text-[9px] uppercase tracking-[0.3em] text-muted-foreground mb-4">Chain</h4>
-          <ul className="space-y-2">
-            <li className="font-mono text-xs text-foreground/80">Base Sepolia</li>
-            <li className="font-mono text-xs text-foreground/80">id 84532</li>
-          </ul>
-        </div>
       </div>
 
       {/* Bottom copyright */}
@@ -212,7 +165,7 @@ export function ColophonSection() {
         <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
           © 2025 Wave Protocol. Built on Base Sepolia.
         </p>
-        <p className="font-mono text-[10px] text-muted-foreground">AI debates. You own the yield. Onchain.</p>
+        <p className="font-mono text-[10px] text-muted-foreground">AI debates. You own the yield. Strategies trade. Onchain.</p>
       </div>
     </section>
   )

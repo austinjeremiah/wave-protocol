@@ -49,6 +49,15 @@ export function PrinciplesSection() {
       description: "The AI deploys your USDC into Compound V3 — but the enforcer guarantees it can only act on consensus. You own the yield.",
       align: "right",
     },
+    {
+      number: "05",
+      titleParts: [
+        { text: "STRATEGIES AS ", highlight: false },
+        { text: "ASSETS", highlight: true },
+      ],
+      description: "A winning strategy isn't spent — it's listed. Anyone can copy it over x402, the proven play redeploys to their own position, and the creator earns on every copy.",
+      align: "left",
+    },
   ]
 
   useEffect(() => {

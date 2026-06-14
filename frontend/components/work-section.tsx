@@ -40,6 +40,12 @@ const experiments = [
     span: "col-span-2 row-span-1",
   },
   {
+    title: "Wave Market",
+    medium: "Marketplace",
+    description: "Proven strategies become tradeable assets. Buyers pay creators over x402; the strategy redeploys to their own Compound position — provenance gated by the enforcer.",
+    span: "col-span-1 row-span-1",
+  },
+  {
     title: "Base Sepolia",
     medium: "Chain",
     description: "Everything is real and onchain — on testnet, at zero real cost.",

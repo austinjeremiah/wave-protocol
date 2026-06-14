@@ -33,6 +33,11 @@ const signals = [
     title: "You Own It",
     note: "The winner supplies your USDC to Compound V3, credited to you. The enforcer keeps the AI on-strategy — you keep the yield.",
   },
+  {
+    date: "WAVE MARKET",
+    title: "Copy & Earn",
+    note: "List your winning strategy. Anyone can copy it over x402 — the proven play redeploys to their own Compound position, and you earn on every copy.",
+  },
 ]
 
 export function SignalsSection() {

@@ -20,7 +20,7 @@ const bebasNeue = Bebas_Neue({ weight: "400", subsets: ["latin"], variable: "--f
 export const metadata: Metadata = {
   title: "Wave Protocol — The AI Yield Manager",
   description:
-    "Deposit idle stablecoins. Three AI agents debate the best yield strategy, reach onchain consensus, and deploy your capital into Compound V3 — gated by an ERC-7710 enforcer so the AI can only act on consensus. You own the position and the yield.",
+    "Deposit idle stablecoins. Three AI agents debate the best yield strategy, reach onchain consensus, and deploy your capital into Compound V3 — gated by an ERC-7710 enforcer so the AI can only act on consensus. You own the position and the yield. Winning strategies become tradeable: copy a proven one over x402 and the creator earns.",
   generator: "v0.app",
   icons: {
     icon: [

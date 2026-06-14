@@ -59,19 +59,24 @@ export function HeroSection() {
           Strategies in superposition. Consensus onchain.
         </h2>
 
-        <p className="mt-12 max-w-md font-mono text-sm text-foreground/70 leading-relaxed">
-          Deposit idle USDC. Three AI agents debate in parallel and stake real conviction — a custom
-          caveat enforcer collapses them to one consensus strategy onchain. You own the position and
-          the yield.
+        <p className="mt-12 max-w-sm font-mono text-sm text-foreground/70 leading-relaxed">
+          Deposit USDC. Three AI agents debate, stake conviction, and collapse to one strategy
+          onchain — deployed to Compound, yield yours. Then the strategy itself trades.
         </p>
 
-        <div className="mt-16 flex items-center justify-center gap-8">
+        <div className="mt-16 flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
           <a
             href="/session/new"
             className="group glass glass-hover inline-flex items-center gap-3 px-6 py-3 font-mono text-xs uppercase tracking-widest text-foreground hover:text-accent"
           >
             <ScrambleTextOnHover text="Deploy Your USDC" as="span" duration={0.6} />
             <BitmapChevron className="transition-transform duration-[400ms] ease-in-out group-hover:rotate-45" />
+          </a>
+          <a
+            href="/market"
+            className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors duration-200"
+          >
+            Browse the Market →
           </a>
           <a
             href="#signals"
