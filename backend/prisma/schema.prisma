@@ -65,6 +65,39 @@ model AgentResult {
   @@index([sessionId])
 }
 
+/// Wave Market — a listed winning strategy (copy-trading). Provenance is verified onchain
+/// (WaveMarket.list checks the enforcer); this mirrors it for the UI/feed.
+model StrategyListing {
+  id            String   @id @default(cuid())
+  listingId     Int      @unique // onchain WaveMarket listing id
+  sessionId     String // the original collapsed session this strategy came from
+  winnerAgentId Int
+  reasoningHash String
+  sellerAddress String
+  priceUsdc     Float // strategy fee per purchase (paid to seller via x402)
+  purchases     Int      @default(0)
+  active        Boolean  @default(true)
+  listTxHash    String?
+  createdAt     DateTime @default(now())
+
+  @@index([sellerAddress])
+}
+
+/// A purchase of a listed strategy: buyer paid the seller via x402, then the proven strategy
+/// was re-executed for the buyer (USDC supplied to Compound V3, credited to the buyer).
+model StrategyPurchase {
+  id              String   @id @default(cuid())
+  listingId       Int
+  buyerAddress    String
+  deployedUsdc    Float
+  sellerPaymentTx String? // x402 settle tx (buyer -> seller)
+  supplyTxHash    String? // WaveMarket.purchaseAndExecute -> Compound supplyTo(buyer)
+  createdAt       DateTime @default(now())
+
+  @@index([listingId])
+  @@index([buyerAddress])
+}
+
 model OneShotTask {
   id        String     @id @default(cuid())
   taskId    String     @unique // 1Shot task id

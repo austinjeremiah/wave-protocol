@@ -159,6 +159,14 @@ export function ColophonSection() {
             </li>
             <li>
               <a
+                href="/market"
+                className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
+              >
+                Wave Market →
+              </a>
+            </li>
+            <li>
+              <a
                 href="/agents"
                 className="font-mono text-xs text-foreground/80 hover:text-accent transition-colors duration-200"
               >

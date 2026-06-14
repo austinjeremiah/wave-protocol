@@ -67,6 +67,63 @@ export function streamUrl(sessionId: string): string {
   return `${BASE}/api/session/${sessionId}/stream`
 }
 
+// ── Wave Market (copy-trading) ───────────────────────────────────
+
+export interface StrategyListing {
+  listingId: number
+  sessionId: string
+  winnerAgentId: number
+  reasoningHash: string
+  sellerAddress: string
+  priceUsdc: number
+  purchases: number
+  active: boolean
+  listTxHash: string | null
+  createdAt?: string
+  // enriched from the source session
+  role: string | null
+  confidence: number | null
+  reasoningExcerpt: string | null
+  userIntent: string | null
+}
+
+export interface StrategyPurchaseRecord {
+  id: string
+  listingId: number
+  buyerAddress: string
+  deployedUsdc: number
+  sellerPaymentTx: string | null
+  supplyTxHash: string | null
+  createdAt?: string
+}
+
+export interface MarketData {
+  listings: StrategyListing[]
+  purchases: StrategyPurchaseRecord[]
+}
+
+export async function getMarket(): Promise<MarketData> {
+  return jsonOrThrow(await fetch(`${BASE}/api/market`))
+}
+
+export async function getListing(listingId: number): Promise<StrategyListing> {
+  return jsonOrThrow(await fetch(`${BASE}/api/market/${listingId}`))
+}
+
+/** List a collapsed session's winning strategy on the market (owner action, after collapse). */
+export async function listStrategy(input: { sessionId: string; priceUsdc: number }): Promise<StrategyListing> {
+  return jsonOrThrow(
+    await fetch(`${BASE}/api/market/list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    }),
+  )
+}
+
+/** The x402-gated purchase endpoint (used by the buyer-side flow in market-x402.ts). */
+export const marketPurchaseUrl = (listingId: number) => `${BASE}/api/market/${listingId}/purchase`
+
 export const basescanTx = (hash: string) => `https://sepolia.basescan.org/tx/${hash}`
 export const basescanAddress = (addr: string) => `https://sepolia.basescan.org/address/${addr}`
 

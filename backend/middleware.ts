@@ -13,7 +13,9 @@ const ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000'
 function withCors(res: NextResponse): NextResponse {
   res.headers.set('Access-Control-Allow-Origin', ORIGIN)
   res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+  // X-PAYMENT: browser buyers POST a signed x402 payment to the market purchase route.
+  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, X-PAYMENT')
+  res.headers.set('Access-Control-Expose-Headers', 'X-PAYMENT-RESPONSE')
   res.headers.set('Access-Control-Max-Age', '86400')
   return res
 }

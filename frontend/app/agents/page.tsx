@@ -41,6 +41,9 @@ export default function AgentsPage() {
           <a href="/explore" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
             Explore
           </a>
+          <a href="/market" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
+            Market
+          </a>
           <a href="/portfolio" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
             Positions
           </a>

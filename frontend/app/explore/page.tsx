@@ -57,6 +57,9 @@ export default function ExplorePage() {
           <a href="/stats" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
             Stats
           </a>
+          <a href="/market" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
+            Market
+          </a>
           <a href="/agents" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
             Agents
           </a>

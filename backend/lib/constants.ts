@@ -26,6 +26,9 @@ export const AGENT_ROLES = ['Yield', 'Risk', 'Liquidity'] as const
 /** WaveStrategyVault — deployed to Base Sepolia; accepts delegated USDC and supplies to Compound V3. */
 export const WAVE_STRATEGY_VAULT_ADDRESS = process.env.WAVE_STRATEGY_VAULT_ADDRESS as `0x${string}` | undefined
 
+/** WaveMarket — copy-trading marketplace; re-executes proven strategies for a buyer (supplyTo). */
+export const WAVE_MARKET_ADDRESS = process.env.WAVE_MARKET_ADDRESS as `0x${string}` | undefined
+
 /** Compound V3 Comet on Base Sepolia (baseToken = Circle USDC). */
 export const COMPOUND_COMET_ADDRESS = (process.env.COMPOUND_COMET_ADDRESS ?? '0x571621Ce60Cebb0c1D442B5afb38B1663C6Bf017') as `0x${string}`
 

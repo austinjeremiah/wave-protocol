@@ -5,6 +5,7 @@ import { useSessionStream } from "@/hooks/use-session-stream"
 import {
   getSession,
   runSession,
+  listStrategy,
   basescanTx,
   AGENT_ROLES,
   type WaveEvent,
@@ -210,6 +211,7 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
 
         {collapsed && winnerAgent && (
           <ResultCard
+            sessionId={sessionId}
             winnerAgent={winnerAgent}
             winnerHash={winner?.winnerHash ?? null}
             action={winnerAction}
@@ -229,12 +231,14 @@ export function SessionRunner({ sessionId }: { sessionId: string }) {
 }
 
 function ResultCard({
+  sessionId,
   winnerAgent,
   winnerHash,
   action,
   supplyTxHash,
   recipient,
 }: {
+  sessionId: string
   winnerAgent: AgentView
   winnerHash: string | null
   action: string | null
@@ -326,6 +330,9 @@ function ResultCard({
         </div>
       )}
 
+      {/* List this proven strategy on the market — earn each time someone copies it */}
+      <ListStrategyPanel sessionId={sessionId} />
+
       <div className="mt-8 flex flex-wrap items-center gap-4">
         <a
           href="/portfolio"
@@ -341,6 +348,70 @@ function ResultCard({
         </a>
       </div>
     </section>
+  )
+}
+
+/** List the winning strategy on Wave Market — proven strategies become copy-tradeable. */
+function ListStrategyPanel({ sessionId }: { sessionId: string }) {
+  const [price, setPrice] = useState(0.5)
+  const [busy, setBusy] = useState(false)
+  const [listed, setListed] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+
+  async function onList() {
+    setBusy(true)
+    setErr(null)
+    try {
+      await listStrategy({ sessionId, priceUsdc: price })
+      setListed(true)
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-xl border border-accent/20 bg-accent/[0.03] px-4 py-3">
+      <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">
+        List on Wave Market
+      </span>
+      {listed ? (
+        <p className="mt-2 font-mono text-[10px] text-muted-foreground/80 leading-relaxed">
+          Listed. This proven strategy is now copy-tradeable —{" "}
+          <a href="/market" className="text-accent hover:underline">view it on the market →</a>
+        </p>
+      ) : (
+        <>
+          <p className="mt-1 font-mono text-[10px] text-muted-foreground/70 leading-relaxed">
+            Sell this consensus-backed strategy. Buyers pay you in USDC over x402; the proven play
+            re-deploys to their own Compound position. You earn on every copy.
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <label className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/70">
+              price
+              <input
+                type="number"
+                min={0.1}
+                step={0.1}
+                value={price}
+                onChange={(e) => setPrice(Math.max(0.1, Number(e.target.value)))}
+                className="glass w-16 px-2 py-1 font-mono text-[11px] text-foreground outline-none focus:!border-accent"
+              />
+              USDC/copy
+            </label>
+            <button
+              onClick={onList}
+              disabled={busy}
+              className="glass glass-hover px-4 py-1.5 font-mono text-[10px] uppercase tracking-widest text-foreground hover:text-accent transition-all disabled:opacity-40"
+            >
+              {busy ? "Listing…" : "List strategy →"}
+            </button>
+          </div>
+          {err && <p className="mt-2 font-mono text-[10px] text-destructive">{err}</p>}
+        </>
+      )}
+    </div>
   )
 }
 
