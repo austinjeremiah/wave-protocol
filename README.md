@@ -5,6 +5,8 @@
 
 You deposit idle USDC and set a goal. Three AI agents debate the best yield strategy, **pay to think** with real money over x402, and reach **consensus onchain** through a custom ERC-7710 caveat enforcer. The enforcer makes it cryptographically impossible for any agent to touch your funds unless the swarm collapsed to a winner — and only within the budget you granted. The winning strategy deploys into Compound V3, credited to *you*, and becomes a **tradeable asset** anyone can copy.
 
+Project : https://www.hackquest.io/projects/Wave-Protocol
+
 **Network:** Base Sepolia (chain ID `84532`) · **Tracks:** Best x402 + ERC-7710 · Best Agent · Best A2A Coordination
 
 ---
