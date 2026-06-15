@@ -440,5 +440,121 @@ A proven strategy shouldn't die after one use. After a collapse, the owner can *
 - **Best Agent** — three debating strategists with real economic skin in the game and onchain track records.
 - **Best A2A Coordination** — ERC-7710 redelegation + agent-to-agent critique, with the onchain collapse as the agreement mechanism.
 
+---
+
+## Smart Accounts Kit Usage
+
+All code-usage links point at the exact lines in this repo (`main`).
+
+### Advanced Permissions (ERC-7715)
+- **Request Advanced Permissions** — `requestExecutionPermissions` (periodic USDC spending cap, signed in MetaMask Flask):
+  [`frontend/hooks/use-grant-delegation.ts#L39`](https://github.com/austinjeremiah/wave-protocol/blob/main/frontend/hooks/use-grant-delegation.ts#L39)
+- **Redeem Advanced Permissions** — the granted permission context is redeemed via the `DelegationManager`:
+  [`backend/services/executionService.ts#L74`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/executionService.ts#L74) · `redeemDelegations` encode at [`#L113`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/executionService.ts#L113)
+
+### Delegations
+- **Create delegation** — `createDelegation` for the 3 enforcer-gated sub-delegations:
+  [`backend/services/delegationService.ts#L39`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/delegationService.ts#L39)
+- **Redeem delegation** — `DelegationManager.redeemDelegations` (winner-only, enforcer-gated):
+  [`backend/services/executionService.ts#L113`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/executionService.ts#L113)
+
+### Redelegation
+- **Create redelegation** — `redelegatePermissionContextOpenAction` (open/`ANY_DELEGATE`) of the user's ERC-7715 context to each agent, carrying the custom `VeniceCollapseEnforcer` caveat:
+  [`backend/services/delegationService.ts#L108`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/delegationService.ts#L108) · call site at [`#L174`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/delegationService.ts#L174)
+
+### x402
+- **Server** — self-hosted x402-gated inference gateway (verify → `settle` onchain → Venice):
+  [`backend/app/api/x402/inference/route.ts#L60`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/x402/inference/route.ts#L60) · settle at [`#L118`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/x402/inference/route.ts#L118)
+- **Server** — x402-gated marketplace purchase (`payTo = seller`, buyer→seller settlement):
+  [`backend/app/api/market/[listingId]/purchase/route.ts#L18`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/market/%5BlistingId%5D/purchase/route.ts#L18) · `settle` in [`backend/services/marketService.ts#L208`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/marketService.ts#L208)
+- **Client (x402 asset transfer)** — agents pay per inference via `x402-fetch` (`createSigner` + `wrapFetchWithPayment`):
+  [`backend/services/veniceAgentService.ts#L23`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/veniceAgentService.ts#L23)
+- **Client (browser x402)** — buyer signs the EIP-3009 USDC authorization in-browser:
+  [`frontend/lib/market-x402.ts#L42`](https://github.com/austinjeremiah/wave-protocol/blob/main/frontend/lib/market-x402.ts#L42)
+- **x402 → ERC-7710 asset transfer** — the actual gated USDC movement: the x402-settled delegation is redeemed through the enforcer, transferring USDC to the vault:
+  [`backend/services/executionService.ts#L113`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/executionService.ts#L113)
+
+---
+
+## 1Shot API Usage
+**Not used.** Wave does not integrate the 1Shot API — all relaying is done by our own backend signer (viem) via the MetaMask `DelegationManager`. Not applying for the 1Shot track.
+
+---
+
+## Venice AI Usage
+- **Inference call** — Venice via the OpenAI-compatible SDK, behind the x402 paywall:
+  [`backend/app/api/x402/inference/route.ts#L137`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/x402/inference/route.ts#L137) (model `mistral-31-24b`)
+- **Round 1 agent reasoning** — system prompt + `runAgent`:
+  [`backend/services/veniceAgentService.ts#L38`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/veniceAgentService.ts#L38) (prompt) · [`#L71`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/veniceAgentService.ts#L71) (`runAgent`)
+- **Round 2 A2A debate** — debate prompt + `runAgentDebate`:
+  [`backend/services/veniceAgentService.ts#L148`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/veniceAgentService.ts#L148) (prompt) · [`#L189`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/veniceAgentService.ts#L189) (`runAgentDebate`)
+- Venice `reasoning_content` is keccak256-hashed and committed onchain → the collapse oracle.
+
+---
+
+## Feedback
+
+Honest, specific developer feedback from building Wave end-to-end on the MetaMask Smart Accounts Kit, x402, and Venice — every item below is something we actually hit, diagnosed, and worked around. We've ordered each as **Problem → Root cause → Workaround → Suggestion** so it's directly actionable.
+
+### MetaMask Smart Accounts Kit · ERC-7710 / ERC-7715
+
+**1 · `eth_signTypedData_v4 does not exist` when redelegating from a backend signer.**
+- *Problem:* Calling `redelegatePermissionContextOpenAction` / `redelegatePermissionContextAction` from a Node backend threw `The method eth_signTypedData_v4 does not exist/is not available`.
+- *Root cause:* The action signs the child delegation by calling `eth_signTypedData_v4` **through the wallet client's transport**, passing the **smart-account address** as the signer. With a plain `http()` transport that request is forwarded to the RPC node — which holds no keys — so it fails. The SDK implicitly assumes a browser injected provider.
+- *Workaround:* a custom viem transport that intercepts `eth_signTypedData_v4`, signs locally with the owner EOA (`account.signTypedData`, dropping the `EIP712Domain` type), and forwards everything else to the RPC. ([`delegationService.ts#L134`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/delegationService.ts#L134))
+- *Suggestion:* first-class support for a **local/backend signer** in the redelegation actions (accept a viem `Account` or a `signTypedData` hook), and document the server-relayer pattern — it's central to any agent/automation use case.
+
+**2 · `InvalidDelegate` on `redeemDelegations` from a relayer.**
+- *Problem:* Redeeming a sub-delegation whose leaf delegate was a specific agent smart account reverted with `InvalidDelegate`.
+- *Root cause:* the **backend relayer EOA is `msg.sender`** at redeem time, so it must match the delegate — a fixed delegate can't be redeemed by the relayer.
+- *Workaround:* switch to the **open / `ANY_DELEGATE` redelegation** (`redelegatePermissionContextOpenAction`) and rely on our custom caveat enforcer to gate by `(sessionId, agentId)` instead. ([`delegationService.ts#L174`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/delegationService.ts#L174))
+- *Suggestion:* prominently document the **relayer redemption path** (who must be `msg.sender`, when to use open redelegation). This wasn't obvious and cost real time.
+
+**3 · EIP-7702 in-flight-transaction limit silently breaks relaying.**
+- *Problem:* Intermittent `in-flight transaction limit reached for delegated accounts` — relaying would just stop.
+- *Root cause:* MetaMask **auto-upgrades accounts it holds via EIP-7702**, and a 7702-delegated account has a **~1 in-flight-tx cap** on Base Sepolia. Our backend EOA happened to also be a MetaMask account, so it got silently delegated and then choked on parallel txs.
+- *Workaround:* moved the backend signer to a **fresh EOA never held by MetaMask**, and serialized all backend-EOA txs through a process-wide mutex. ([`lib/mutex.ts`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/lib/mutex.ts))
+- *Suggestion:* surface the 7702 in-flight limit explicitly in errors and docs, and warn that connecting an automation EOA to MetaMask can auto-7702-upgrade it.
+
+**4 · ERC-7715 grant returns empty `dependencies` (7702 in-place upgrade) → first redeem reverts.**
+- *Problem:* `requestExecutionPermissions` returned `dependencies: []`, and the first `redeemDelegations` reverted.
+- *Root cause:* modern MetaMask upgrades the EOA **in place via EIP-7702** (no counterfactual gator factory), so there's no factory deploy data — but the delegation chain still needs every account deployed/active for ERC-1271 signature verification at redeem.
+- *Workaround:* deploy the user's gator from `dependencies` when present **and** proactively deploy the intermediate agent smart account before redeeming. ([`executionService.ts#L40`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/executionService.ts#L40))
+- *Suggestion:* document the **7702-vs-counterfactual grant modes** and exactly what the redeemer must ensure is deployed in each.
+
+**5 · `redeemDelegations` reverts surface as "execution reverted for an unknown reason."**
+- *Problem:* A redeem failed with no decodable reason; debugging was guesswork. The real cause turned out to be an RPC **read-after-write race** — the collapse tx was mined, but the redeem's `eth_call` hit a load-balanced node a block behind, so the enforcer saw "not yet collapsed."
+- *Workaround:* poll the enforcer until the collapse is visible on the queried node, then `eth_call`-simulate before sending and retry on a transient stale read — which finally surfaced the decoded caveat revert string. ([`executionService.ts#L94`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/executionService.ts#L94))
+- *Suggestion:* a helper to **decode caveat-enforcer revert reasons** from a failed `redeemDelegations` (which enforcer, which `require`) would save hours — the generic revert is a black box.
+
+### x402
+
+**6 · EIP-3009 authorization expires across a slow downstream call.**
+- *Problem:* Settling *after* the LLM call failed with `invalid_exact_evm_payload_authorization_valid_before`.
+- *Root cause:* the `validBefore` window is short; an inference that takes seconds can outlast it.
+- *Workaround:* **settle first, then run Venice** (accepting a tiny toll even if inference later errors). ([`x402/inference/route.ts#L107`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/x402/inference/route.ts#L107))
+- *Suggestion:* document the "settle-before-compute" pattern for paywalled long tasks, or allow a configurable longer validity window.
+
+**7 · Parallel `settle()` calls race on the facilitator nonce.**
+- *Problem:* Three agents settling in parallel from one facilitator EOA hit nonce collisions / the Base Sepolia in-flight limit.
+- *Workaround:* serialize all settlements through a mutex. ([`x402/inference/route.ts#L117`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/x402/inference/route.ts#L117))
+- *Suggestion:* the facilitator should document (or handle) nonce serialization for concurrent settlements — this is the common multi-agent case.
+
+**8 · `402` on a settlement failure causes `x402-fetch` to retry-pay.**
+- *Problem:* Returning `402` when our own `settle` threw made `x402-fetch` treat it as "pay again" and loop.
+- *Workaround:* return `500` for hard settlement errors, reserve `402` for "payment required". ([`x402/inference/route.ts#L120`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/app/api/x402/inference/route.ts#L120))
+- *Suggestion:* document which status codes trigger client retry vs. surface a hard error.
+
+### Venice AI
+
+**9 · Fast (non-reasoning) models emit no `reasoning_content` and occasionally non-JSON.**
+- *Problem:* `mistral-31-24b` returns empty `reasoning_content`, and sometimes content that doesn't parse as JSON — which initially crashed a whole run.
+- *Workaround:* fall back to the structured `reasoning` field for the onchain hash, and **retry the inference up to 3× with a valid low-confidence fallback** so one bad roll never kills the swarm. ([`veniceAgentService.ts#L71`](https://github.com/austinjeremiah/wave-protocol/blob/main/backend/services/veniceAgentService.ts#L71))
+- *Suggestion:* a guaranteed **JSON/structured-output mode** and clear docs on which models populate `reasoning_content` would remove a lot of defensive code.
+
+### Open issues / PRs
+- _Filed issue links go here (add if/when filed)._
+
+
 ## License
 MIT
