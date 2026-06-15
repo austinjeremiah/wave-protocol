@@ -366,6 +366,12 @@ function ResultCard({
         >
           Run another →
         </a>
+        <a
+          href="/graph"
+          className="inline-flex border border-foreground/20 rounded-xl px-6 py-3 font-mono text-xs uppercase tracking-widest hover:border-accent hover:text-accent transition-all"
+        >
+          View A2A graph →
+        </a>
       </div>
     </section>
   )

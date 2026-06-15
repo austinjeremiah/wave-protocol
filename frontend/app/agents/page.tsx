@@ -47,6 +47,9 @@ export default function AgentsPage() {
           <a href="/portfolio" className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground hover:text-accent transition-colors">
             Positions
           </a>
+          <a href="/graph" className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent hover:text-foreground transition-colors">
+            A2A Graph →
+          </a>
         </div>
 
         {/* title */}
