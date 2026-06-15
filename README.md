@@ -1,4 +1,5 @@
-# 🌊 Wave Protocol
+<img width="876" height="242" alt="image" src="https://github.com/user-attachments/assets/c88e2a20-4cdc-4995-af47-a98ac140d689" />
+
 
 > **An onchain AI yield manager for stablecoins — where you don't have to trust the AI, because the chain enforces it.**
 
